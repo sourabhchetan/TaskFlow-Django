@@ -1,0 +1,204 @@
+{% load static %}
+{% load icons %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-server-theme="{% if user.is_authenticated %}{{ user.profile.theme_preference|default:'system' }}{% else %}system{% endif %}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4f46e5">
+<title>{% block title %}To-Do List{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'tasks/css/style.css' %}">
+<script>
+  // Applied before first paint to avoid a light/dark flash on load.
+  (function () {
+    var saved = localStorage.getItem('todo-theme');
+    var serverPref = document.documentElement.getAttribute('data-server-theme');
+    var effective = saved || (serverPref !== 'system' ? serverPref : null);
+    if (effective === 'dark' || (!effective && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+{% block extra_head %}{% endblock %}
+</head>
+<body{% if user.is_authenticated %} data-task-create-url="{% url 'task_create' %}"{% endif %}>
+{% if user.is_authenticated %}
+<div class="app-shell">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="icon-btn hamburger" id="hamburgerBtn" type="button" aria-label="Toggle navigation">{% icon "menu" %}</button>
+      <div class="brand topbar-brand">
+        <div class="brand-mark">{% icon "check" %}</div>
+        <strong>To-Do List</strong>
+      </div>
+      <button class="icon-btn sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">
+        {% icon "chevrons-left" %}
+      </button>
+    </div>
+    {% if user.is_authenticated %}
+    <form class="topbar-search" action="{% url 'dashboard' %}" method="get" role="search">
+      <input type="hidden" name="filter" value="all">
+      {% icon "search" %}
+      <input type="search" name="q" id="topbarSearch" placeholder="Search tasks..." aria-label="Search all tasks">
+      <kbd class="topbar-search-hint">Ctrl K</kbd>
+    </form>
+    {% endif %}
+    <div class="topbar-actions">
+      <div class="user-menu">
+        <button class="icon-btn notif-btn" id="notifBtn" type="button" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
+          {% icon "bell" %}
+          {% if topbar_notifications %}<span class="notif-dot" aria-hidden="true"></span>{% endif %}
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <h4>Notifications</h4>
+          {% for notif in topbar_notifications %}
+          <div class="notif-item">{% icon "warning" "inline" %} {{ notif.message }}</div>
+          {% empty %}
+          <p class="notif-empty">You're all caught up — nothing needs attention.</p>
+          {% endfor %}
+        </div>
+      </div>
+      <button class="icon-btn" id="themeToggle" type="button" aria-label="Toggle theme">
+        <span class="icon-sun">{% icon "sun" %}</span><span class="icon-moon">{% icon "moon" %}</span>
+      </button>
+      <div class="user-menu">
+        <button class="avatar-btn" id="userMenuBtn" type="button" aria-haspopup="true" aria-expanded="false">
+          <span class="avatar">{{ user.username|slice:":2"|upper }}</span>
+          {% icon "chevron-down" %}
+        </button>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="user-dropdown-header">
+            <strong>{{ user.username }}</strong>
+            <span>{{ user.email }}</span>
+          </div>
+          <a href="{% url 'profile' %}">{% icon "user" "inline" %} Profile</a>
+          <a href="{% url 'settings' %}">{% icon "settings" "inline" %} Settings</a>
+          <form action="{% url 'logout' %}" method="post">{% csrf_token %}
+            <button type="submit">{% icon "logout" "inline" %} Logout</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <nav class="filter-list" aria-label="Task navigation">
+          <p class="sidebar-section-label nav-label">Main</p>
+          <a class="filter-btn {% if request.resolver_match.url_name == 'dashboard' and not request.GET.filter %}active{% endif %}" href="{% url 'dashboard' %}" title="Dashboard">
+            {% icon "home" %} <span class="nav-label">Dashboard</span>
+          </a>
+          <a class="filter-btn {% if request.GET.filter == 'all' %}active{% endif %}" href="{% url 'dashboard' %}?filter=all" title="All Tasks">
+            {% icon "list" %} <span class="nav-label">All Tasks</span> <b id="sidebarCountAll">{{ sidebar_counts.all }}</b>
+          </a>
+          <a class="filter-btn {% if request.GET.filter == 'today' %}active{% endif %}" href="{% url 'dashboard' %}?filter=today" title="Today">
+            {% icon "clock" %} <span class="nav-label">Today</span> <b id="sidebarCountToday">{{ sidebar_counts.today }}</b>
+          </a>
+          <a class="filter-btn {% if request.GET.filter == 'upcoming' %}active{% endif %}" href="{% url 'dashboard' %}?filter=upcoming" title="Upcoming">
+            {% icon "chevron-right" %} <span class="nav-label">Upcoming</span> <b id="sidebarCountUpcoming">{{ sidebar_counts.upcoming }}</b>
+          </a>
+          <a class="filter-btn {% if request.GET.filter == 'overdue' %}active{% endif %}" href="{% url 'dashboard' %}?filter=overdue" title="Overdue">
+            {% icon "warning" %} <span class="nav-label">Overdue</span> <b id="sidebarCountOverdue">{{ sidebar_counts.overdue }}</b>
+          </a>
+          <a class="filter-btn {% if request.GET.filter == 'high' %}active{% endif %}" href="{% url 'dashboard' %}?filter=high" title="High Priority">
+            {% icon "flag-high" %} <span class="nav-label">High Priority</span> <b id="sidebarCountHigh">{{ sidebar_counts.high }}</b>
+          </a>
+          <a class="filter-btn {% if request.GET.filter == 'pinned' %}active{% endif %}" href="{% url 'dashboard' %}?filter=pinned" title="Pinned">
+            {% icon "pin" %} <span class="nav-label">Pinned</span> <b id="sidebarCountPinned">{{ sidebar_counts.pinned }}</b>
+          </a>
+          <a class="filter-btn {% if request.GET.filter == 'completed' %}active{% endif %}" href="{% url 'dashboard' %}?filter=completed" title="Completed">
+            {% icon "check" %} <span class="nav-label">Completed</span> <b id="sidebarCountCompleted">{{ sidebar_counts.completed }}</b>
+          </a>
+          <p class="sidebar-section-label nav-label">Workspace</p>
+          <a class="filter-btn {% if request.resolver_match.url_name == 'calendar' %}active{% endif %}" href="{% url 'calendar' %}" title="Calendar">
+            {% icon "calendar" %} <span class="nav-label">Calendar</span>
+          </a>
+          <a class="filter-btn {% if request.resolver_match.url_name == 'analytics' %}active{% endif %}" href="{% url 'analytics' %}" title="Analytics">
+            {% icon "chart" %} <span class="nav-label">Analytics</span>
+          </a>
+          <a class="filter-btn {% if request.resolver_match.url_name == 'categories' %}active{% endif %}" href="{% url 'categories' %}" title="Categories">
+            {% icon "tag" %} <span class="nav-label">Categories</span>
+          </a>
+          <a class="filter-btn {% if request.resolver_match.url_name == 'activity' %}active{% endif %}" href="{% url 'activity' %}" title="Activity">
+            {% icon "clock" %} <span class="nav-label">Activity</span>
+          </a>
+        </nav>
+      </div>
+      <div class="sidebar-footer">
+        <p class="sidebar-section-label nav-label">Account</p>
+        <a class="filter-btn" href="{% url 'settings' %}" title="Settings">{% icon "settings" %} <span class="nav-label">Settings</span></a>
+        <a class="filter-btn" href="{% url 'profile' %}" title="Profile">{% icon "user" %} <span class="nav-label">Profile</span></a>
+        <form action="{% url 'logout' %}" method="post">{% csrf_token %}
+          <button class="filter-btn logout-btn" type="submit" title="Logout">{% icon "logout" %} <span class="nav-label">Logout</span></button>
+        </form>
+      </div>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <main class="content">
+      {% if messages %}
+      <div class="toast-stack" id="toastStack" role="status" aria-live="polite">
+        {% for message in messages %}
+        <div class="toast toast-{{ message.tags }}">{{ message }}<span class="toast-progress"></span></div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <nav class="mobile-tabbar" aria-label="Quick navigation">
+    <a href="{% url 'dashboard' %}" class="{% if not request.GET.filter %}active{% endif %}">{% icon "home" %}<span>Home</span></a>
+    <a href="{% url 'calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}active{% endif %}">{% icon "calendar" %}<span>Calendar</span></a>
+    <a href="{% url 'task_create' %}" class="mobile-add" aria-label="Add task">{% icon "plus" %}</a>
+    <a href="{% url 'analytics' %}" class="{% if request.resolver_match.url_name == 'analytics' %}active{% endif %}">{% icon "chart" %}<span>Stats</span></a>
+    <a href="{% url 'profile' %}">{% icon "user" %}<span>Profile</span></a>
+  </nav>
+</div>
+{% else %}
+  <div class="auth-shell">
+    {% if messages %}
+    <div class="toast-stack" role="status" aria-live="polite">
+      {% for message in messages %}
+      <div class="toast toast-{{ message.tags }}">{{ message }}<span class="toast-progress"></span></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% block auth_content %}{% endblock %}
+  </div>
+{% endif %}
+
+{% if user.is_authenticated %}
+<div class="shortcuts-overlay" id="shortcutsOverlay" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
+  <div class="shortcuts-modal">
+    <h2 id="shortcutsTitle">Keyboard shortcuts</h2>
+    <div class="shortcuts-row"><span>New task</span><kbd>N</kbd></div>
+    <div class="shortcuts-row"><span>Focus search</span><kbd>/</kbd> <span class="muted">or</span> <kbd>Ctrl K</kbd></div>
+    <div class="shortcuts-row"><span>Close this / any panel</span><kbd>Esc</kbd></div>
+    <div class="shortcuts-row"><span>Show this help</span><kbd>?</kbd></div>
+    <div class="modal-actions"><button class="secondary-btn" type="button" id="shortcutsCloseBtn">Close</button></div>
+  </div>
+</div>
+
+<div class="confirm-overlay" id="confirmOverlay" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmBody">
+  <div class="confirm-modal">
+    <h2 id="confirmTitle">Are you sure?</h2>
+    <p id="confirmBody">This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="secondary-btn" type="button" id="confirmCancelBtn">Cancel</button>
+      <button class="primary-btn confirm-danger-btn" type="button" id="confirmAcceptBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script src="{% static 'tasks/js/main.js' %}"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

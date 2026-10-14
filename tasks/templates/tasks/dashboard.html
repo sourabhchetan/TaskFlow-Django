@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% load task_extras icons %}
+{% block title %}Dashboard · To-Do List{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">{{ today|date:"l, F j" }}</p>
+    <h1>{{ greeting }}, {{ user.username }} <span aria-hidden="true">👋</span></h1>
+    <p class="hero-subtitle">A fresh day, a fresh start. Let's make it productive.</p>
+  </div>
+  <a class="primary-btn" href="{% url 'task_create' %}">{% icon "plus" %} Add Task</a>
+</section>
+
+<section class="stats-grid" aria-label="Task summary">
+  <a class="stat-card" href="{% url 'dashboard' %}?filter=all">
+    <span class="stat-icon blue">{% icon "list" %}</span>
+    <div><small>Total Tasks</small><strong id="statTotal">{{ stats.total }}</strong><span class="stat-sub">All time</span></div>
+    <span class="stat-chevron">{% icon "chevron-right" %}</span>
+  </a>
+  <a class="stat-card" href="{% url 'dashboard' %}?filter=all&status=active">
+    <span class="stat-icon indigo">{% icon "clock" %}</span>
+    <div><small>Active Tasks</small><strong id="statActive">{{ stats.active }}</strong><span class="stat-sub">To be done</span></div>
+    <span class="stat-chevron">{% icon "chevron-right" %}</span>
+  </a>
+  <a class="stat-card" href="{% url 'dashboard' %}?filter=completed">
+    <span class="stat-icon green">{% icon "check" %}</span>
+    <div><small>Completed</small><strong id="statCompleted">{{ stats.completed }}</strong><span class="stat-sub">Well done!</span></div>
+    <span class="stat-chevron">{% icon "chevron-right" %}</span>
+  </a>
+  <a class="stat-card" href="{% url 'dashboard' %}?filter=overdue">
+    <span class="stat-icon red">{% icon "warning" %}</span>
+    <div><small>Overdue</small><strong id="statOverdue">{{ stats.overdue }}</strong><span class="stat-sub">Needs attention</span></div>
+    <span class="stat-chevron">{% icon "chevron-right" %}</span>
+  </a>
+</section>
+
+{% if daily_status %}
+<div class="schedule-banner">
+  <span class="schedule-banner-icon">{% icon "sun" %}</span>
+  <div class="schedule-banner-text">
+    <strong>{{ daily_status }}</strong>
+    <span>{% if stats.today_due == 0 %}No tasks scheduled. Enjoy your day or add something new!{% else %}Stay on top of your day — you've got this.{% endif %}</span>
+  </div>
+  <a class="primary-btn schedule-banner-cta" href="{% url 'task_create' %}">{% icon "plus" "inline" %} Create Task</a>
+</div>
+{% endif %}
+
+<section class="progress-card wide">
+  <div class="progress-copy">
+    <span>Completion Progress</span>
+    <strong id="progressText">{{ stats.completed }} / {{ stats.total }} tasks completed ({{ progress_pct }}%)</strong>
+  </div>
+  <div class="progress-track"><div class="progress-bar" id="progressBarFill" style="width: {{ progress_pct }}%;"></div></div>
+</section>
+
+<section class="dashboard-grid">
+  <div class="panel">
+    <h3>{% icon "clock" %} Today's Overview</h3>
+    <div class="overview-row"><span>{% icon "calendar" "inline" %} Due today</span><strong>{{ stats.today_due }}</strong></div>
+    <div class="overview-row"><span>{% icon "check" "inline" %} Completed today</span><strong>{{ stats.completed_today }}</strong></div>
+    <div class="overview-row"><span>{% icon "warning" "inline" %} Overdue</span><strong>{{ stats.overdue }}</strong></div>
+    <div class="overview-row"><span>{% icon "chevron-right" "inline" %} Upcoming</span><strong>{{ stats.upcoming }}</strong></div>
+  </div>
+  <div class="panel">
+    <h3>{% icon "flag-high" %} Priority Summary</h3>
+    <div class="priority-bars">
+      <div class="priority-bar-row">
+        <span>High</span>
+        <div class="priority-bar-track"><div class="priority-bar-fill high" style="width: {{ priority_pct.high }}%;"></div></div>
+        <span>{{ priority_summary.high }}</span>
+      </div>
+      <div class="priority-bar-row">
+        <span>Medium</span>
+        <div class="priority-bar-track"><div class="priority-bar-fill medium" style="width: {{ priority_pct.medium }}%;"></div></div>
+        <span>{{ priority_summary.medium }}</span>
+      </div>
+      <div class="priority-bar-row">
+        <span>Low</span>
+        <div class="priority-bar-track"><div class="priority-bar-fill low" style="width: {{ priority_pct.low }}%;"></div></div>
+        <span>{{ priority_summary.low }}</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="task-section">
+  <div class="section-toolbar">
+    <div>
+      <h2>{{ filter_label }}</h2>
+      <p>{{ page_obj.paginator.count }} task{{ page_obj.paginator.count|pluralize }}{% if query %} matching &ldquo;{{ query }}&rdquo;{% endif %}</p>
+    </div>
+    <form class="toolbar-controls" method="get" id="dashboardFilterForm">
+      <input type="hidden" name="filter" value="{{ active_filter }}">
+      <label class="search-box">
+        {% icon "search" %}
+        <input type="search" name="q" value="{{ query }}" placeholder="Search tasks..." aria-label="Search tasks by title, description, category, or priority" id="searchInput">
+        {% if query %}<a href="?{% query_transform request q=None page=None %}" class="icon-btn small" aria-label="Clear search" title="Clear search">{% icon "close" %}</a>{% endif %}
+      </label>
+      <select name="sort" class="sort-select" onchange="this.form.submit()" aria-label="Sort tasks">
+        {% for key, opt in sort_options.items %}
+        <option value="{{ key }}" {% if key == sort_key %}selected{% endif %}>{{ opt.1 }}</option>
+        {% endfor %}
+      </select>
+      <button type="button" class="secondary-btn" id="toggleFiltersBtn" aria-expanded="false" aria-controls="filterPanel">
+        {% icon "filter" "inline" %} Filters{% if advanced_filters_active %}<span class="filter-badge">{{ active_filter_count }}</span>{% endif %}
+      </button>
+    </form>
+  </div>
+
+  <div class="filter-panel {% if advanced_filters_active %}open{% endif %}" id="filterPanel">
+    <label>Status
+      <select name="status" form="dashboardFilterForm">
+        <option value="">Any</option>
+        <option value="active" {% if filter_status == 'active' %}selected{% endif %}>Active</option>
+        <option value="completed" {% if filter_status == 'completed' %}selected{% endif %}>Completed</option>
+      </select>
+    </label>
+    <label>Priority
+      <select name="priority" form="dashboardFilterForm">
+        <option value="">Any</option>
+        <option value="high" {% if filter_priority == 'high' %}selected{% endif %}>High</option>
+        <option value="medium" {% if filter_priority == 'medium' %}selected{% endif %}>Medium</option>
+        <option value="low" {% if filter_priority == 'low' %}selected{% endif %}>Low</option>
+      </select>
+    </label>
+    <label>Category
+      <select name="category" form="dashboardFilterForm">
+        <option value="">Any</option>
+        {% for category in categories %}
+        <option value="{{ category.id }}" {% if filter_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Due
+      <select name="due" form="dashboardFilterForm">
+        <option value="">Any</option>
+        <option value="today" {% if filter_due == 'today' %}selected{% endif %}>Today</option>
+        <option value="tomorrow" {% if filter_due == 'tomorrow' %}selected{% endif %}>Tomorrow</option>
+        <option value="week" {% if filter_due == 'week' %}selected{% endif %}>This week</option>
+        <option value="overdue" {% if filter_due == 'overdue' %}selected{% endif %}>Overdue</option>
+        <option value="none" {% if filter_due == 'none' %}selected{% endif %}>No due date</option>
+      </select>
+    </label>
+    <label class="checkbox-row" style="min-width: auto;">
+      <input type="checkbox" name="pinned" value="1" form="dashboardFilterForm" {% if filter_pinned == '1' %}checked{% endif %}> Pinned only
+    </label>
+    <button type="submit" form="dashboardFilterForm" class="primary-btn">Apply</button>
+    {% if advanced_filters_active %}
+    <a class="secondary-btn" href="?{% query_transform request status=None priority=None category=None due=None pinned=None page=None %}">Clear filters</a>
+    {% endif %}
+  </div>
+
+  <div class="quick-filters">
+    <a class="pill {% if active_filter == 'all' %}active{% endif %}" href="?{% query_transform request filter='all' page=None %}">All</a>
+    <a class="pill {% if active_filter == 'today' %}active{% endif %}" href="?{% query_transform request filter='today' page=None %}">Today</a>
+    <a class="pill {% if active_filter == 'upcoming' %}active{% endif %}" href="?{% query_transform request filter='upcoming' page=None %}">Upcoming</a>
+    <a class="pill {% if active_filter == 'overdue' %}active{% endif %}" href="?{% query_transform request filter='overdue' page=None %}">Overdue</a>
+    <a class="pill {% if active_filter == 'high' %}active{% endif %}" href="?{% query_transform request filter='high' page=None %}">High Priority</a>
+    <a class="pill {% if active_filter == 'pinned' %}active{% endif %}" href="?{% query_transform request filter='pinned' page=None %}">Pinned</a>
+    <a class="pill {% if active_filter == 'completed' %}active{% endif %}" href="?{% query_transform request filter='completed' page=None %}">Completed</a>
+  </div>
+
+  {% if tasks %}
+  <form method="post" action="{% url 'bulk_action' %}" id="bulkActionForm" class="bulk-toolbar">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <span class="bulk-toolbar-count" id="bulkCount">0 selected</span>
+    <div class="bulk-toolbar-actions">
+      <button type="submit" name="action" value="complete" class="secondary-btn">{% icon "check" "inline" %} Complete</button>
+      <button type="submit" name="action" value="pin" class="secondary-btn">{% icon "pin" "inline" %} Pin</button>
+      <button type="submit" name="action" value="unpin" class="secondary-btn">Unpin</button>
+      <select name="priority" class="sort-select" aria-label="Set priority for selected tasks">
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <button type="submit" name="action" value="priority" class="secondary-btn">Set priority</button>
+      <button type="submit" name="action" value="delete" class="secondary-btn" data-confirm="Delete the selected tasks? This cannot be undone.">{% icon "trash" "inline" %} Delete</button>
+    </div>
+  </form>
+
+  <div class="task-list" id="taskList">
+    {% for task in tasks %}
+      {% include "tasks/partials/task_card.html" %}
+    {% endfor %}
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <nav class="pagination" aria-label="Task pages">
+    {% if page_obj.has_previous %}
+      <a href="?{% query_transform request page=page_obj.previous_page_number %}">{% icon "chevron-left" %} Prev</a>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?{% query_transform request page=page_obj.next_page_number %}">Next {% icon "chevron-right" %}</a>
+    {% endif %}
+  </nav>
+  {% endif %}
+
+  {% else %}
+    {% if query %}
+    <div class="empty-state">
+      <div class="empty-icon">{% icon "search" %}</div>
+      <h3>No tasks found</h3>
+      <p>Try a different search term.</p>
+      <a class="secondary-btn" href="?{% query_transform request q=None page=None %}">Clear search</a>
+    </div>
+    {% elif active_filter == 'completed' %}
+    <div class="empty-state">
+      <div class="empty-icon">{% icon "check" %}</div>
+      <h3>Nothing completed yet</h3>
+      <p>Finish a task and it will appear here.</p>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      {% include "tasks/partials/empty_illustration.html" %}
+      <h3>You're all caught up</h3>
+      <p>Create your first task to start organizing your day.</p>
+      <a class="primary-btn" href="{% url 'task_create' %}">{% icon "plus" "inline" %} Create Task</a>
+      <div class="quick-start-row">
+        <span class="quick-start-label">Or quick start with</span>
+        <a class="pill" href="{% url 'task_create' %}?category=Study">Study</a>
+        <a class="pill" href="{% url 'task_create' %}?category=Work">Work</a>
+        <a class="pill" href="{% url 'task_create' %}?category=Personal">Personal</a>
+      </div>
+    </div>
+    {% endif %}
+  {% endif %}
+</section>
+
+<p class="dashboard-footnote">Small steps every day lead to big results. Stay productive! {% icon "rocket" "inline" %}</p>
+
+{% endblock %}

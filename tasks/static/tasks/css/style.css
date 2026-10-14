@@ -1,0 +1,1388 @@
+/* ==========================================================================
+   To-Do List — design system
+   A small, consistent set of tokens (color, spacing, radius, shadow,
+   typography, transition) that every component below draws from, instead
+   of one-off values.
+   ========================================================================== */
+:root {
+  /* Color */
+  --background: #f6f7fb;
+  --surface: #ffffff;
+  --surface-hover: #f1f2f7;
+  --surface-elevated: #ffffff;
+  --border: #e6e8f0;
+  --text-primary: #12131a;
+  --text-secondary: #4b5162;
+  --text-muted: #6b7280;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-soft: #eef0fe;
+  --primary-contrast: #ffffff;
+  --success: #16a34a;
+  --success-soft: #dcfce7;
+  --warning: #d97706;
+  --warning-soft: #fef3c7;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+
+  /* Radius scale */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Shadow scale */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 20px 56px rgba(15, 23, 42, 0.16);
+
+  /* Transition scale — transform/opacity only where it matters for perf */
+  --transition-fast: 120ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 320ms ease;
+
+  /* Spacing scale (4 / 8 / 12 / 16 / 24 / 32 / 48 / 64) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Typography scale */
+  --font-display: 2rem;
+  --font-h1: 1.75rem;
+  --font-h2: 1.3rem;
+  --font-h3: 1.02rem;
+  --font-body: 0.95rem;
+  --font-small: 0.85rem;
+  --font-caption: 0.75rem;
+  --line-tight: 1.25;
+  --line-normal: 1.55;
+
+  --sidebar-width: 264px;
+  --sidebar-width-collapsed: 76px;
+  /* Must match the topbar's real rendered height exactly (space-3 padding
+     top/bottom + the 40px icon-btn + 1px border), or the sidebar's sticky
+     offset and height:calc() drift from it by a few px, causing a slow
+     scroll-time overlap with the topbar's bottom edge. */
+  --topbar-height: 65px;
+}
+
+[data-theme="dark"] {
+  --background: #0b0d12;
+  --surface: #12151d;
+  --surface-hover: #1a1e29;
+  --surface-elevated: #171b25;
+  --border: #252b38;
+  --text-primary: #f1f2f6;
+  --text-secondary: #c3c7d1;
+  --text-muted: #9aa0ae;
+  --primary: #818cf8;
+  --primary-hover: #6d76f2;
+  --primary-soft: #23253a;
+  --primary-contrast: #10111a;
+  --success: #4ade80;
+  --success-soft: #163a24;
+  --warning: #fbbf24;
+  --warning-soft: #3a2f14;
+  --danger: #f87171;
+  --danger-soft: #3a1f22;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.55);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--background);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100%;
+  overflow-x: hidden;
+  line-height: var(--line-normal);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+body.no-scroll { overflow: hidden; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background-color: var(--border); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--text-muted); }
+
+html, body, .app-shell {
+  transition: background-color var(--transition-slow), color var(--transition-slow);
+}
+
+a { color: inherit; }
+button, input, select, textarea { font-family: inherit; }
+
+h1, h2, h3 { line-height: var(--line-tight); }
+
+/* Theme-toggle glyph swap. Scoped to #themeToggle's own wrapper spans so it
+   never hides a sun/moon icon used elsewhere in the UI (the schedule banner
+   uses a sun icon and was being blanked by the unscoped rule). */
+#themeToggle .icon-sun, #themeToggle .icon-moon { display: none; }
+[data-theme="light"] #themeToggle .icon-moon { display: inline-flex; }
+[data-theme="dark"] #themeToggle .icon-sun { display: inline-flex; }
+
+.icon { flex-shrink: 0; }
+
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ==========================================================================
+   Motion: a shared set of entrance keyframes, used sparingly, and switched
+   off entirely for anyone who has asked their OS for reduced motion.
+   ========================================================================== */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+@keyframes pop-check {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.content, .form-page, .auth-shell, .analytics-grid {
+  animation: fade-in-up var(--transition-slow) both;
+}
+
+/* Dashboard entrance sequence: greeting -> insight -> stats -> progress ->
+   overview/priority panels -> controls -> task list. Kept short overall
+   (~1s total) so the page still feels immediate — this is cosmetic polish
+   layered on top of content that's already fully server-rendered, never a
+   loading gate. Each section's delay is set directly on its own rule
+   (search "animation-delay" below) rather than via a shared utility class,
+   since a utility class's cascade position relative to each section's own
+   animation shorthand is fragile — a shorthand declared later always wins
+   and silently resets the delay back to 0. */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Skeleton / shimmer utility — available for anything rendered progressively */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-hover) 25%, var(--border) 37%, var(--surface-hover) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+  color: transparent !important;
+}
+
+/* ==========================================================================
+   Layout shell
+   ========================================================================== */
+.app-shell { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* Fixed, not sticky: a sticky topbar/sidebar only stays put while their
+   containing block scrolls past them without edge cases — a fixed position
+   anchors them to the viewport outright, which is what "stays put while the
+   page scrolls" actually requires here. Taking the topbar out of flow means
+   .layout has to make up the space itself (see its padding-top below).
+   Three-track grid (left group / search / right group) instead of a plain
+   flex row: the center column is a real fr-track, so the search bar centers
+   in the space actually left over between the two side groups rather than
+   just sitting after the brand. */
+.topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-3) var(--space-5);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  /* Above the mobile drawer (z-index 50) and its backdrop (40): at z-index
+     30 both used to render on top of the topbar once the drawer opened,
+     covering #hamburgerBtn so the one control that opened the drawer could
+     no longer be clicked to close it (only the backdrop and Escape still
+     worked). The header is persistent chrome, not part of what the drawer
+     is supposed to cover, so it now stays on top and interactive — only
+     genuine app-level overlays (toasts, the shortcuts/confirm modals)
+     still render above it. */
+  z-index: 55;
+}
+
+/* Left group: hamburger (mobile), brand, and the sidebar collapse button —
+   only one of hamburger/collapse-btn is ever visible at a given width, so
+   grouping them here does not change when each one shows. */
+.topbar-left { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+
+.brand { display: flex; align-items: center; gap: var(--space-2); font-size: 1.05rem; min-width: 0; }
+.brand strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand.centered { justify-content: center; margin-bottom: var(--space-4); }
+/* The topbar brand is the one place the "To-Do List" title is written out;
+   the sidebar keeps the icon only, so it's shown at every width rather than
+   hidden above the mobile breakpoint. */
+.topbar-brand { flex-shrink: 0; }
+.brand-mark {
+  width: 34px; height: 34px; border-radius: var(--radius-sm);
+  background: var(--primary); color: var(--primary-contrast);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800;
+}
+
+.notif-btn { position: relative; }
+.topbar-search {
+  display: flex; align-items: center; gap: var(--space-2);
+  background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 0.5rem var(--space-3); max-width: 500px; width: 100%;
+  /* width:100% of its minmax(0,1fr) grid track lets it shrink with the
+     track on narrow screens; justify-self centers it within that track
+     once the track is wider than the max-width, instead of growing to
+     fill the gap and sitting flush against the brand. min-width:0
+     overrides the grid item's own automatic minimum size (content-based
+     by default), which is what actually let it refuse to shrink past its
+     icon+input+kbd content width and push the row wider than the track. */
+  justify-self: center; min-width: 0;
+  color: var(--text-muted); transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.topbar-search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.topbar-search input[type="search"] {
+  border: none; background: none; outline: none; color: var(--text-primary); width: 100%; min-width: 0; font-size: 0.88rem;
+}
+.topbar-search-hint {
+  background: var(--surface-hover); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.1rem 0.4rem; font-size: 0.68rem; font-weight: 600; color: var(--text-muted);
+  white-space: nowrap; flex-shrink: 0;
+}
+.topbar-actions { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
+
+.icon-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  width: 40px; height: 40px;
+  min-width: 40px; min-height: 40px;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+.icon-btn:hover { background: var(--surface-hover); }
+.icon-btn:active { transform: scale(0.94); }
+.icon-btn.small { width: 34px; height: 34px; min-width: 34px; min-height: 34px; font-size: 0.9rem; }
+.icon-btn.active { color: var(--warning); border-color: var(--warning); }
+.icon-btn.danger:hover { color: var(--danger); border-color: var(--danger); }
+.hamburger { display: none; }
+
+.avatar-btn {
+  display: flex; align-items: center; gap: 0.3rem; background: none; border: none; cursor: pointer;
+  color: var(--text-muted); padding: 0.2rem; border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast);
+}
+.avatar-btn:hover { background: var(--surface-hover); }
+.avatar {
+  width: 36px; height: 36px; border-radius: 999px;
+  background: var(--primary-soft); color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.8rem;
+  transition: transform var(--transition-fast);
+}
+.avatar-btn:active .avatar { transform: scale(0.94); }
+
+.user-menu { position: relative; }
+.user-dropdown {
+  position: absolute; right: 0; top: 48px; width: 220px;
+  background: var(--surface-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+  display: none; flex-direction: column; padding: var(--space-2); z-index: 40;
+  transform-origin: top right;
+  animation: scale-in var(--transition-fast) both;
+}
+.user-dropdown.open { display: flex; }
+.user-dropdown-header { padding: var(--space-2) var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); margin-bottom: var(--space-2); display: flex; flex-direction: column; }
+.user-dropdown-header span { color: var(--text-muted); font-size: var(--font-caption); }
+.user-dropdown a, .user-dropdown button {
+  padding: var(--space-2) var(--space-2); border-radius: var(--radius-sm); text-decoration: none;
+  background: none; border: none; text-align: left; cursor: pointer;
+  color: var(--text-primary); font-size: 0.92rem; width: 100%;
+  display: flex; align-items: center; gap: var(--space-2);
+  transition: background-color var(--transition-fast);
+}
+.user-dropdown a:hover, .user-dropdown button:hover { background: var(--surface-hover); }
+
+/* .sidebar is position:fixed (taken out of flow), so .layout makes room for
+   both fixed elements itself via padding rather than flex sizing: padding-top
+   for the fixed topbar, padding-left for the fixed sidebar. .content (the
+   only element still in normal flow here) is what that padding actually
+   pushes — the fixed .sidebar/.topbar don't see ancestor padding at all,
+   since their own top/left are set directly against the viewport. The
+   :has() rule keeps that offset in sync when the sidebar collapses, without
+   needing a second place (JS) to track the same state. */
+.layout {
+  display: flex; flex: 1; position: relative;
+  padding-top: var(--topbar-height);
+  padding-left: var(--sidebar-width);
+  transition: padding-left var(--transition-normal);
+}
+/* Scoped to the same width where the collapse button itself is shown
+   (sidebar-collapse-btn is display:none below 1025px) — this keeps the
+   rule from ever having to out-specificity the tablet/mobile padding-left
+   overrides further down, since below 1025px it simply doesn't apply. */
+@media (min-width: 1025px) {
+  .layout:has(.sidebar.collapsed) { padding-left: var(--sidebar-width-collapsed); }
+}
+
+.sidebar {
+  /* justify-content was space-between, which — combined with .sidebar-top's
+     old flex:1 below — pinned .sidebar-footer (ACCOUNT) to the bottom edge
+     of the fixed-height sidebar/drawer. With flex-start (the default) the
+     two children simply stack: ACCOUNT follows WORKSPACE at its natural
+     position, any leftover height just sits unused below the footer. */
+  width: var(--sidebar-width); flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; justify-content: flex-start;
+  position: fixed; top: var(--topbar-height); left: 0; height: calc(100vh - var(--topbar-height));
+  z-index: 25;
+  transition: width var(--transition-normal);
+}
+/* flex-grow:0 (the "0" in 0 1 auto) means this region no longer stretches
+   to fill the sidebar's full height — that stretch, with nothing inside it
+   to fill the extra space, was the gap between WORKSPACE and ACCOUNT.
+   flex-shrink:1 + min-height:0 are kept: on a viewport short enough that
+   Main+Workspace+Account genuinely don't all fit, this region still
+   compresses instead of pushing the Account footer off-screen, and
+   .filter-list (its only child) is what actually scrolls — see the
+   comment on .filter-list below. */
+.sidebar-top { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; padding: var(--space-2) var(--space-3) 0; }
+.sidebar-section-label {
+  margin: var(--space-2) var(--space-2) var(--space-1); font-size: 0.66rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); opacity: 0.75;
+}
+.sidebar-section-label:first-child { margin-top: 0; }
+/* Subtle divider above each section label except the first, to separate
+   MAIN / WORKSPACE visually without heavy rules. A single border + padding
+   step (no extra margin-top on top of it) keeps this compact. */
+.filter-list .sidebar-section-label:not(:first-child) {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-2); margin-top: 0;
+}
+.sidebar-footer .sidebar-section-label { margin-top: 0; }
+.sidebar-footer {
+  display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--border);
+  /* padding-top raised from the old 6px to space-4 (16px): with .sidebar-top
+     carrying no bottom padding of its own, 6px plus the 1px border only put
+     ~7px between the last WORKSPACE row and the ACCOUNT label — tighter than
+     a section break should read. 16px (+1px border) lands the gap in the
+     16–24px range while padding-bottom stays at 6px, keeping the footer
+     itself compact against the sidebar's bottom edge. */
+  padding: var(--space-4) var(--space-3) 6px; flex-shrink: 0;
+}
+.sidebar-footer form { margin: 0; }
+.logout-btn { width: 100%; text-align: left; background: none; border: none; cursor: pointer; }
+.sidebar-backdrop { display: none; }
+
+/* No internal scrollbar by default — at normal desktop heights the nav
+   fits naturally (overflow: visible, no clipping, nothing hidden). The
+   @media block further down is the ONLY place that turns scrolling back
+   on, and only for viewports short enough that Main+Workspace+Account
+   genuinely cannot all fit — at that point it's this region (not the
+   whole sidebar, never the footer) that scrolls, per the "central
+   navigation area only" rule. */
+.filter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: visible;
+}
+/* Safety net only: on a viewport short enough that Main + Workspace +
+   Account genuinely don't all fit, let the nav itself scroll (never the
+   whole sidebar, never clipping/hiding items) rather than pushing Account
+   off-screen. The scrollbar stays theme-aware and invisible until hovered,
+   so even here it never looks like a default browser scrollbar. */
+@media (max-height: 680px) {
+  .filter-list {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color var(--transition-normal);
+  }
+  .filter-list:hover, .filter-list:focus-within {
+    scrollbar-color: var(--border) transparent;
+  }
+  .filter-list::-webkit-scrollbar { width: 4px; }
+  .filter-list::-webkit-scrollbar-track { background: transparent; }
+  .filter-list::-webkit-scrollbar-thumb {
+    background-color: transparent; border-radius: 999px;
+    transition: background-color var(--transition-normal);
+  }
+  .filter-list:hover::-webkit-scrollbar-thumb,
+  .filter-list:focus-within::-webkit-scrollbar-thumb { background-color: var(--border); }
+  .filter-list::-webkit-scrollbar-thumb:hover { background-color: var(--text-muted); }
+}
+.filter-btn {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: 0 var(--space-4); border-radius: var(--radius-sm);
+  text-decoration: none; color: var(--text-muted);
+  font-size: 0.9rem; font-weight: 500;
+  border: none; background: none; cursor: pointer; width: 100%; text-align: left;
+  height: 30px; flex-shrink: 0;
+  box-shadow: inset 0 0 0 var(--primary);
+  transition: background-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-normal);
+}
+.filter-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
+.filter-btn.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; box-shadow: inset 3px 0 0 var(--primary); }
+.filter-btn .icon { flex-shrink: 0; width: 18px; transition: transform var(--transition-fast); }
+.filter-btn b {
+  margin-left: auto; font-weight: 600; font-size: var(--font-caption);
+  background: var(--surface-hover); color: var(--text-muted);
+  padding: 0.1rem 0.45rem; border-radius: 999px;
+  transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+.filter-btn.active b { background: var(--primary); color: var(--primary-contrast); }
+.filter-btn b.is-updating { animation: badge-pulse 320ms ease; }
+@keyframes badge-pulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+/* Collapsed sidebar: icons only. JS moves each item's `title` to
+   `data-tooltip` so our own CSS tooltips (defined further below) render
+   instead of the slow, ugly native OS tooltip box. */
+.sidebar.collapsed { width: var(--sidebar-width-collapsed); }
+.sidebar.collapsed .sidebar-footer { padding-left: var(--space-2); padding-right: var(--space-2); }
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .filter-btn b,
+.sidebar.collapsed .sidebar-section-label { display: none; }
+.sidebar.collapsed .filter-btn { justify-content: center; position: relative; }
+/* The button now lives in the topbar, not inside .sidebar, so the flipped
+   state is tracked with its own class (toggled in main.js alongside
+   .sidebar's own .collapsed) rather than a .sidebar.collapsed ancestor
+   selector that would no longer match. */
+.sidebar-collapse-btn.collapsed .icon { transform: rotate(180deg); }
+/* overflow: visible here (not the usual overflow-y: auto) because a
+   scrollable nav also clips horizontally, which would cut off the
+   collapsed-state tooltips defined further below; collapsed, the nav is
+   icons-only and short enough not to need scrolling. */
+.sidebar.collapsed .sidebar-top { padding-left: var(--space-2); padding-right: var(--space-2); overflow: visible; }
+
+.content {
+  /* flex-grow would push past a plain `width`, so the cap must be max-width —
+     that's what actually constrains a flex item. margin-inline centers the
+     workspace once it stops growing. */
+  flex: 1; min-width: 0; max-width: 1500px; margin-inline: auto;
+  padding: var(--space-5) var(--space-5) var(--space-6);
+}
+
+.mobile-tabbar { display: none; }
+
+.icon-inline, .inline { display: inline-flex; vertical-align: -3px; }
+
+/* ==========================================================================
+   Hero / stats / progress
+   ========================================================================== */
+.hero {
+  display: flex; align-items: center; justify-content: space-between;
+  /* 8px, not the space-3 (12px) other sections used to share: trims ~4px
+     of between-section gap at each of the 5 major dashboard dividers (see
+     .stats-grid/.schedule-banner/.progress-card/.dashboard-grid below) so
+     "All Tasks" sits higher on the initial screen, without touching the
+     space-3 token itself, which still governs in-card padding/gaps. */
+  gap: var(--space-4); flex-wrap: wrap; margin-bottom: 8px;
+  animation: fade-in-up var(--transition-slow) both;
+}
+.eyebrow { text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--font-caption); color: var(--text-muted); margin: 0 0 var(--space-1); line-height: 1.3; }
+.hero h1 { margin: 0; font-size: var(--font-h1); }
+.hero-subtitle { color: var(--text-secondary); margin: var(--space-1) 0 0; font-size: var(--font-small); line-height: 1.3; }
+
+.primary-btn {
+  background: var(--primary); color: var(--primary-contrast);
+  border: none; padding: 0.7rem 1.1rem; border-radius: var(--radius-sm);
+  font-weight: 600; cursor: pointer; text-decoration: none;
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  min-height: 44px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+.primary-btn:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); background: var(--primary-hover); }
+.primary-btn:active { transform: scale(0.98) translateY(0); }
+.primary-btn.full-width { width: 100%; justify-content: center; }
+.primary-btn:disabled { opacity: 0.7; cursor: progress; transform: none; }
+
+.secondary-btn {
+  background: var(--surface); color: var(--text-primary);
+  border: 1px solid var(--border); padding: 0.65rem 1.05rem; border-radius: var(--radius-sm);
+  font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block;
+  min-height: 44px;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+.secondary-btn:hover { background: var(--surface-hover); }
+.secondary-btn:active { transform: scale(0.98); }
+
+.stats-grid {
+  /* gap (space between the 4 cards) is untouched — only the margin to the
+     next section is trimmed, same 12px→8px reduction as .hero. */
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3); margin-bottom: 8px;
+}
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 14px var(--space-4); display: flex; align-items: center; gap: var(--space-3); box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+  animation: fade-in-up var(--transition-slow) both;
+}
+.stats-grid .stat-card:nth-child(1) { animation-delay: 60ms; }
+.stats-grid .stat-card:nth-child(2) { animation-delay: 95ms; }
+.stats-grid .stat-card:nth-child(3) { animation-delay: 130ms; }
+.stats-grid .stat-card:nth-child(4) { animation-delay: 165ms; }
+.stat-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); border-color: var(--primary); }
+.stat-icon {
+  width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; flex-shrink: 0;
+}
+.stat-icon.blue { background: var(--primary-soft); color: var(--primary); }
+.stat-icon.indigo { background: var(--primary-soft); color: var(--primary); }
+.stat-icon.green { background: var(--success-soft); color: var(--success); }
+.stat-icon.red { background: var(--danger-soft); color: var(--danger); }
+.stat-card small { display: block; color: var(--text-muted); font-size: var(--font-caption); line-height: 1.3; }
+.stat-card strong { font-size: 1.3rem; line-height: 1.25; }
+
+/* Utility tier: minimal border, no fill/shadow — a status strip, not a card. */
+.progress-card {
+  /* padding (internal breathing room) untouched; only the two margins
+     that separate it from schedule-banner above and dashboard-grid below
+     are trimmed, same 12px→8px reduction as the other section gaps. */
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4); margin-top: 8px; margin-bottom: 8px;
+  animation: fade-in-up var(--transition-slow) both; animation-delay: 320ms;
+}
+.progress-copy { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--space-2); flex-wrap: wrap; gap: var(--space-1); line-height: 1.3; }
+.progress-copy span { color: var(--text-muted); font-size: var(--font-small); }
+.progress-track { background: var(--surface-hover); border-radius: 999px; height: 10px; overflow: hidden; }
+.progress-bar { background: var(--primary); height: 100%; border-radius: 999px; transition: width 0.6s ease; }
+
+/* ==========================================================================
+   Task list / cards
+   ========================================================================== */
+.task-section { animation: fade-in-up var(--transition-slow) both; animation-delay: 260ms; }
+.section-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  flex-wrap: wrap; margin-bottom: var(--space-3);
+}
+.section-toolbar h2 { margin: 0; font-size: var(--font-h2); }
+.section-toolbar p { margin: 0.15rem 0 0; color: var(--text-muted); font-size: var(--font-small); }
+.toolbar-controls { display: flex; gap: var(--space-2); align-items: center; }
+
+.search-box {
+  display: flex; align-items: center; gap: var(--space-2);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+  padding: 0.5rem var(--space-4); color: var(--text-muted);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.search-box:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.search-box input { border: none; background: none; outline: none; color: var(--text-primary); width: 190px; }
+
+.sort-select {
+  border: 1px solid var(--border); background: var(--surface); color: var(--text-primary);
+  border-radius: 999px; padding: 0.5rem var(--space-4); min-height: 40px;
+}
+
+.quick-filters { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-3); }
+.pill {
+  padding: 0.5rem 0.9rem; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-muted); font-size: var(--font-small);
+  text-decoration: none; font-weight: 500;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  min-height: 40px; display: inline-flex; align-items: center;
+}
+.pill.active { background: var(--primary); border-color: var(--primary); color: var(--primary-contrast); }
+.pill:hover:not(.active) { background: var(--surface-hover); }
+
+.task-list { display: flex; flex-direction: column; gap: var(--space-3); }
+.task-list .task-card:nth-child(1) { animation-delay: 480ms; }
+.task-list .task-card:nth-child(2) { animation-delay: 520ms; }
+.task-list .task-card:nth-child(3) { animation-delay: 560ms; }
+.task-list .task-card:nth-child(4) { animation-delay: 600ms; }
+.task-list .task-card:nth-child(5) { animation-delay: 640ms; }
+.task-list .task-card:nth-child(n+6) { animation-delay: 680ms; }
+
+.task-card {
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: var(--space-4); box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+  animation: fade-in-up var(--transition-slow) both;
+}
+.task-card:hover { box-shadow: var(--shadow-md); border-color: var(--primary); transform: translateY(-2px); }
+.task-card.is-overdue { border-color: var(--danger); }
+.task-card.is-completed { opacity: 0.62; }
+.task-card.is-completed .task-title {
+  text-decoration: line-through;
+  transition: opacity var(--transition-slow);
+}
+
+.task-check-form { margin: 0; }
+.task-checkbox {
+  width: 26px; height: 26px; border-radius: var(--radius-sm); border: 2px solid var(--border);
+  background: var(--surface); cursor: pointer; flex-shrink: 0; margin-top: 0.1rem;
+  display: flex; align-items: center; justify-content: center; color: var(--primary-contrast);
+  font-size: 0.8rem;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+.task-checkbox:hover { border-color: var(--primary); transform: scale(1.06); }
+.task-checkbox:active { transform: scale(0.92); }
+.task-card.is-completed .task-checkbox { background: var(--success); border-color: var(--success); animation: pop-check var(--transition-normal) both; }
+
+.task-body { flex: 1; min-width: 0; }
+.task-title-row { display: flex; align-items: center; gap: var(--space-2); }
+.task-title { margin: 0; font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
+.pin-indicator { color: var(--warning); }
+.task-desc { margin: var(--space-1) 0 0; color: var(--text-secondary); font-size: 0.88rem; overflow-wrap: anywhere; }
+
+.task-meta { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-top: var(--space-2); }
+.badge {
+  padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.02em;
+  display: inline-flex; align-items: center; gap: 0.3rem;
+}
+.priority-high { background: var(--danger-soft); color: var(--danger); }
+.priority-medium { background: var(--warning-soft); color: var(--warning); }
+.priority-low { background: var(--success-soft); color: var(--success); }
+.category-badge { background: var(--primary-soft); color: var(--primary); }
+.due-info { font-size: 0.8rem; color: var(--text-muted); }
+.countdown { font-size: 0.78rem; font-weight: 600; color: var(--primary); }
+.countdown.overdue-tag { color: var(--danger); }
+.countdown.soon-tag { color: var(--warning); }
+.countdown .icon { vertical-align: -3px; }
+
+.task-actions {
+  display: flex; gap: var(--space-1); flex-shrink: 0;
+  opacity: 1; transition: opacity var(--transition-fast);
+}
+.task-actions a, .task-actions form { margin: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .task-actions { opacity: 0; }
+  .task-card:hover .task-actions,
+  .task-actions:focus-within { opacity: 1; }
+}
+
+.pagination { display: flex; align-items: center; gap: var(--space-4); justify-content: center; margin-top: var(--space-5); color: var(--text-muted); }
+.pagination a {
+  text-decoration: none; font-weight: 600; color: var(--primary);
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  min-height: 44px; padding: 0 var(--space-2);
+}
+
+/* ==========================================================================
+   Empty states
+   ========================================================================== */
+.empty-state {
+  /* Padding/min-height trimmed toward the space-3/4 rhythm the rest of the
+     dashboard uses — this block was the one place still on the larger
+     space-5 (24px) padding scale. max-height is left at its proven 320px:
+     the richest variant (illustration + CTA + quick-start pills) needs
+     most of that room, and since .empty-state has no overflow:hidden, a
+     tighter cap wouldn't clip content so much as let it spill past the
+     card's own border — worse than the whitespace it would have saved. */
+  text-align: center; padding: var(--space-4); background: var(--surface);
+  border: 1px dashed var(--border); border-radius: var(--radius-lg); color: var(--text-muted);
+  animation: fade-in-up var(--transition-slow) both;
+  min-height: 220px; max-height: 320px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+/* A calm, static icon badge — no looping float/glow. The one-time
+   fade-in-up on .empty-state itself is enough entrance motion. */
+.empty-icon {
+  width: 40px; height: 40px; border-radius: 999px; background: var(--primary-soft); color: var(--primary);
+  display: flex; align-items: center; justify-content: center; font-size: 1.1rem; margin: 0 auto var(--space-2);
+}
+.empty-state h3 { color: var(--text-primary); margin: 0 0 var(--space-1); font-size: var(--font-h3); line-height: 1.3; }
+.empty-state p { margin: 0 0 var(--space-2); line-height: 1.4; }
+
+/* ==========================================================================
+   Forms (task form, profile, settings)
+   ========================================================================== */
+.form-page { display: flex; justify-content: center; }
+.form-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: var(--space-6); width: 100%; max-width: 560px; box-shadow: var(--shadow-sm);
+  animation: scale-in var(--transition-normal) both;
+}
+.form-card h1 { margin: 0 0 var(--space-4); font-size: var(--font-h1); }
+.form-card label { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-4); font-size: var(--font-small); font-weight: 600; color: var(--text-secondary); }
+.form-card input, .form-card select, .form-card textarea {
+  border: 1px solid var(--border); background: var(--background); color: var(--text-primary);
+  border-radius: var(--radius-sm); padding: 0.6rem 0.75rem; font-size: var(--font-body); font-weight: 400;
+  outline: none; min-height: 44px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.form-card textarea { min-height: 88px; }
+.form-card input:focus, .form-card select:focus, .form-card textarea:focus {
+  border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft);
+}
+.form-card input:user-invalid, .form-card select:user-invalid { border-color: var(--danger); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.required { color: var(--danger); }
+.field-error { color: var(--danger); font-weight: 500; }
+.field-success { color: var(--success); font-weight: 500; }
+.form-alert {
+  background: var(--danger-soft); color: var(--danger); padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm); margin-bottom: var(--space-4); font-size: var(--font-small);
+  animation: fade-in-up var(--transition-normal) both;
+}
+.modal-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
+
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-bottom: var(--space-5); }
+.profile-item { background: var(--surface-hover); border-radius: var(--radius-sm); padding: var(--space-3); }
+.profile-item small { display: block; color: var(--text-muted); font-size: var(--font-caption); margin-bottom: 0.2rem; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4) 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: var(--space-5); }
+.muted { color: var(--text-muted); font-size: var(--font-small); }
+
+/* Inline button-loading state (progressive enhancement on submit) */
+.btn-spinner {
+  display: inline-block; width: 14px; height: 14px; border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.5); border-top-color: currentColor;
+  animation: spin 0.6s linear infinite; margin-right: var(--space-2);
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ==========================================================================
+   Auth pages (login / register)
+   ========================================================================== */
+.auth-shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: var(--space-4); }
+.auth-card {
+  width: 100%; max-width: 420px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: var(--space-6); box-shadow: var(--shadow-lg);
+  animation: scale-in var(--transition-normal) both;
+}
+.auth-card h1 { text-align: center; margin: 0 0 0.3rem; font-size: var(--font-h1); }
+.auth-card > p.muted { text-align: center; margin: 0 0 var(--space-5); }
+.auth-card label { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-4); font-size: var(--font-small); font-weight: 600; color: var(--text-secondary); }
+.auth-card input {
+  border: 1px solid var(--border); background: var(--background); color: var(--text-primary);
+  border-radius: var(--radius-sm); padding: 0.65rem 0.8rem; font-size: var(--font-body); min-height: 44px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.auth-card input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); outline: none; }
+.password-field { position: relative; display: block; }
+.password-field input { width: 100%; padding-right: 2.75rem; }
+.password-toggle-btn {
+  position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%);
+  background: none; border: none; padding: 0.4rem; cursor: pointer; color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+.password-toggle-btn:hover { color: var(--text-primary); background: var(--surface-hover); }
+.password-toggle-btn .icon-eye-off { display: none; }
+.password-toggle-btn.is-visible .icon-eye { display: none; }
+.password-toggle-btn.is-visible .icon-eye-off { display: inline-flex; }
+.auth-footer { text-align: center; font-size: var(--font-small); color: var(--text-muted); margin-top: var(--space-4); }
+.auth-footer a { color: var(--primary); font-weight: 600; text-decoration: none; }
+
+/* ==========================================================================
+   Toasts
+   ========================================================================== */
+.toast-stack { position: fixed; top: 78px; right: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); z-index: 100; max-width: 320px; }
+.toast {
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); background: var(--surface-elevated);
+  border: 1px solid var(--border); box-shadow: var(--shadow-lg); font-size: var(--font-small);
+  animation: toast-in var(--transition-normal) ease both;
+  position: relative; overflow: hidden;
+}
+.toast.is-leaving { animation: toast-out var(--transition-normal) ease both; }
+.toast-success { border-left: 4px solid var(--success); }
+.toast-error { border-left: 4px solid var(--danger); }
+.toast-warning { border-left: 4px solid var(--warning); }
+.toast-debug, .toast-info { border-left: 4px solid var(--primary); }
+@keyframes toast-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toast-out { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(24px); } }
+.toast-progress {
+  position: absolute; left: 0; bottom: 0; height: 2px; width: 100%;
+  background: var(--primary); transform-origin: left;
+  animation: toast-progress-shrink 4s linear forwards;
+}
+@keyframes toast-progress-shrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* ==========================================================================
+   Responsive breakpoints
+   Mobile <640 · Tablet 640–1024 · Laptop 1024–1440 · Large desktop 1440+
+   ========================================================================== */
+@media (min-width: 1440px) {
+  /* Content width is handled by the `width: min(100%, 1400px)` rule on
+     .content — no narrower override here (a stale 1240px cap used to
+     silently shrink the workspace on large screens). */
+  .content { padding-inline: var(--space-6); }
+}
+
+/* Tablet (640–1024): keep the sidebar, just narrower — no hamburger, no
+   bottom tab bar. Phones get those below at the 640px boundary. */
+@media (max-width: 1024px) {
+  .sidebar { width: 210px; }
+  .layout { padding-left: 210px; } /* keep .content's offset in sync with the narrower fixed sidebar */
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .content { padding: var(--space-4) var(--space-4) var(--space-8); }
+  .sidebar-collapse-btn { display: none; } /* collapse is a desktop-only affordance */
+  .topbar-search-hint { display: none; }
+}
+
+@media (max-width: 768px) {
+  .topbar-search { display: none; } /* the dashboard's own search covers mobile */
+  /* With the center column empty, drop back to two auto-sized tracks and
+     let justify-content push them to the edges — otherwise the unused
+     minmax(0,1fr) track would sit there as a dead gap between the groups. */
+  .topbar { grid-template-columns: auto auto; justify-content: space-between; }
+}
+
+@media (max-width: 640px) {
+  .hamburger { display: inline-flex; }
+  /* Off-canvas drawer, not an in-flow column, so .content never carries a
+     sidebar offset here — it stays full-width whether the drawer is open,
+     closed, or (irrelevantly, since the collapse button is hidden below
+     1024px) still carrying a stale .collapsed class from a wider session. */
+  .layout { padding-left: 0; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; height: 100vh; z-index: 50;
+    transform: translateX(-100%); transition: transform var(--transition-normal);
+    /* max-width caps the drawer on very narrow phones (anything under
+       ~310px) so it can never exceed ~85% of the viewport or run off the
+       right edge; on every normal phone width var(--sidebar-width) itself
+       (264px) is already under that cap and wins as the smaller value. */
+    width: var(--sidebar-width); max-width: 85vw;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar.collapsed { width: var(--sidebar-width); max-width: 85vw; }
+  .sidebar.collapsed .sidebar-top { padding-left: var(--space-3); padding-right: var(--space-3); }
+  .sidebar.collapsed .sidebar-footer { padding-left: var(--space-3); padding-right: var(--space-3); }
+  .sidebar.collapsed .nav-label, .sidebar.collapsed .filter-btn b, .sidebar.collapsed .sidebar-section-label { display: inline; }
+  .sidebar.collapsed .sidebar-section-label { display: block; }
+  .sidebar-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(15, 17, 23, 0.45); z-index: 40;
+    animation: fade-in var(--transition-fast) both;
+  }
+  .sidebar-backdrop.open { display: block; }
+
+  /* .stats-grid's own 2-column rule is dropped here: the @media (max-width:
+     1024px) rule above already sets the identical repeat(2, 1fr), and every
+     width this block covers (<=640px) is also <=1024px, so this was a dead
+     duplicate of that rule rather than a real override. */
+  .form-row { grid-template-columns: 1fr; }
+  .profile-grid { grid-template-columns: 1fr; }
+  .section-toolbar { flex-direction: column; align-items: stretch; }
+  .toolbar-controls { flex-direction: column; align-items: stretch; }
+  .search-box input { width: 100%; }
+
+  .task-card { flex-wrap: wrap; }
+  .task-actions { width: 100%; justify-content: flex-end; margin-top: var(--space-2); opacity: 1; }
+
+  /* The 220px desktop/tablet floor leaves visible dead space above and
+     below the illustration+CTA+quick-start content on a phone screen
+     (justify-content:center spreads the slack evenly) — scoped here
+     rather than lowering the shared rule, so desktop/tablet are untouched. */
+  .empty-state { min-height: 0; }
+
+  .content { padding-bottom: 5.5rem; }
+  /* z-index 35, below .sidebar-backdrop's 40: the backdrop's inset:0 already
+     spans the full viewport including this bar, so keeping the bar under it
+     is what actually hides the tabbar behind the open drawer/backdrop (both
+     visually, dimmed under the overlay, and for clicks, which now land on
+     the backdrop instead) rather than leaving it floating above the dimmed
+     page where it stayed visible and tappable. */
+  .mobile-tabbar {
+    display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 35;
+    background: var(--surface); border-top: 1px solid var(--border);
+    justify-content: space-around; padding: var(--space-2) var(--space-1);
+    padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
+  }
+  .mobile-tabbar a {
+    display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+    text-decoration: none; color: var(--text-muted); font-size: 0.68rem;
+    min-width: 44px; min-height: 44px; justify-content: center;
+    transition: color var(--transition-fast);
+  }
+  .mobile-tabbar a.active { color: var(--primary); }
+  .mobile-tabbar a svg { margin: 0 auto; }
+  .mobile-tabbar .mobile-add {
+    background: var(--primary); color: var(--primary-contrast);
+    width: 46px; height: 46px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: -20px; box-shadow: var(--shadow-lg);
+    transition: transform var(--transition-fast);
+  }
+  .mobile-tabbar .mobile-add:active { transform: scale(0.92); }
+  .mobile-tabbar .mobile-add svg { width: 22px; height: 22px; }
+}
+
+@media (max-width: 480px) {
+  /* Same dead duplicate as the 640px block above: 1fr 1fr is identical to
+     the repeat(2, 1fr) the @media (max-width: 1024px) rule already applies
+     at every width this block covers. */
+  .hero h1 { font-size: 1.3rem; }
+  .form-card, .auth-card { padding: var(--space-5); }
+  .topbar { padding: var(--space-3) var(--space-3); gap: var(--space-2); }
+  .brand { font-size: 0.95rem; gap: var(--space-1); }
+  .topbar-actions { gap: var(--space-1); }
+}
+
+/* ==========================================================================
+   Today's overview + priority summary (dashboard)
+   ========================================================================== */
+.dashboard-grid {
+  /* column gap untouched; margin-bottom (gap before All Tasks) trimmed
+     12px→8px, same as the other section gaps above — the last of the 5,
+     so "All Tasks" now sits ~20px higher on the initial screen in total. */
+  display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-3); margin-bottom: 8px;
+  animation: fade-in-up var(--transition-slow) both; animation-delay: 360ms;
+}
+/* Secondary tier: a subtle surface (border only, no shadow) so it reads
+   quieter than the primary, actionable surfaces (stat-card, task-card)
+   that carry box-shadow + hover elevation. */
+.panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 14px var(--space-4);
+  display: flex; flex-direction: column;
+}
+/* .panel is a static display surface, not a clickable control, so it gets
+   no hover affordance — reserving motion/elevation feedback for things the
+   person can actually act on (buttons, stat-card links, task rows). */
+.panel h3 { margin: 0 0 var(--space-2); font-size: var(--font-h3); display: flex; align-items: center; gap: var(--space-2); line-height: 1.3; }
+.overview-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: var(--font-small); line-height: 1.3; }
+.overview-row:last-child { border-bottom: none; }
+.overview-row span:first-child { color: var(--text-muted); display: flex; align-items: center; gap: var(--space-2); }
+.overview-row strong { font-size: 1rem; }
+
+/* flex: 1 + justify-content: center lets the three bars share the panel's
+   full height evenly with Today's Overview (both panels stretch to match
+   the taller one in the grid row), instead of leaving dead space below a
+   shorter block of content. */
+.priority-bars { display: flex; flex-direction: column; gap: var(--space-3); flex: 1; justify-content: center; }
+.priority-bar-row { display: grid; grid-template-columns: 70px 1fr 28px; align-items: center; gap: var(--space-3); font-size: var(--font-small); }
+.priority-bar-track { background: var(--surface-hover); border-radius: 999px; height: 8px; overflow: hidden; }
+.priority-bar-fill { height: 100%; border-radius: 999px; transition: width 0.7s ease; }
+.priority-bar-fill.high { background: var(--danger); }
+.priority-bar-fill.medium { background: var(--warning); }
+.priority-bar-fill.low { background: var(--success); }
+
+/* Dashboard footnote — a single quiet line, not a full footer band.
+   Kept intentionally tiny so it never competes for vertical space. */
+.dashboard-footnote {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-small);
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+}
+.dashboard-footnote .icon { width: 14px; height: 14px; }
+
+/* ==========================================================================
+   Calendar / agenda
+   ========================================================================== */
+.calendar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); gap: var(--space-4); flex-wrap: wrap; }
+.calendar-nav { display: flex; align-items: center; gap: var(--space-2); }
+.calendar-layout { display: grid; grid-template-columns: 1fr 300px; gap: var(--space-5); align-items: flex-start; }
+
+.calendar-grid { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
+.calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--surface-hover); }
+.calendar-weekdays span { padding: var(--space-2) 0; text-align: center; font-size: var(--font-caption); font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+.calendar-week { display: grid; grid-template-columns: repeat(7, 1fr); }
+.calendar-day {
+  min-height: 76px; padding: var(--space-2); border: 1px solid var(--border); border-width: 0 1px 1px 0;
+  display: flex; flex-direction: column; gap: var(--space-1); text-decoration: none; color: var(--text-primary);
+  background: var(--surface);
+  transition: background-color var(--transition-fast);
+}
+.calendar-day:hover { background: var(--surface-hover); }
+.calendar-day.out-of-month { color: var(--text-muted); opacity: 0.5; }
+.calendar-day.is-today .day-number { background: var(--primary); color: var(--primary-contrast); }
+.calendar-day.is-selected { background: var(--primary-soft); outline: 2px solid var(--primary); outline-offset: -2px; }
+.day-number {
+  width: 24px; height: 24px; border-radius: 999px; display: flex; align-items: center; justify-content: center;
+  font-size: 0.82rem; font-weight: 600;
+}
+.day-task-count {
+  font-size: 0.68rem; color: var(--primary); font-weight: 700; margin-top: auto;
+  background: var(--primary-soft); border-radius: 999px; padding: 0.1rem 0.4rem; align-self: flex-start;
+}
+
+.agenda-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-4); box-shadow: var(--shadow-sm); }
+.agenda-panel h3 { margin: 0 0 var(--space-3); font-size: var(--font-h3); }
+.agenda-item { display: flex; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--border); }
+.agenda-item:last-child { border-bottom: none; }
+.agenda-time { font-size: var(--font-small); font-weight: 700; color: var(--primary); min-width: 64px; }
+.agenda-title { font-size: 0.9rem; font-weight: 600; }
+.agenda-empty { color: var(--text-muted); font-size: var(--font-small); padding: var(--space-2) 0; }
+.agenda-title.is-completed { text-decoration: line-through; color: var(--text-muted); }
+#calendarToggle { display: none; }
+@media (max-width: 640px) { #calendarToggle { display: inline-block; } }
+
+/* ==========================================================================
+   Analytics
+   ========================================================================== */
+.analytics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); margin-bottom: var(--space-5); }
+.chart-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-4); box-shadow: var(--shadow-sm); }
+.chart-panel h3 { margin: 0 0 var(--space-4); font-size: var(--font-h3); }
+
+.bar-chart { display: flex; flex-direction: column; gap: var(--space-3); }
+.bar-row { display: grid; grid-template-columns: 90px 1fr 32px; align-items: center; gap: var(--space-3); font-size: var(--font-small); }
+.bar-track { background: var(--surface-hover); border-radius: 6px; height: 14px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 6px; background: var(--primary); transition: width 0.7s ease; }
+.priority-fill-high { background: var(--danger); }
+.priority-fill-medium { background: var(--warning); }
+.priority-fill-low { background: var(--success); }
+
+.weekly-chart { display: flex; align-items: flex-end; gap: var(--space-3); height: 140px; }
+.weekly-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: var(--space-2); height: 100%; }
+.weekly-bar { width: 100%; max-width: 28px; background: var(--primary); border-radius: 4px 4px 0 0; min-height: 3px; transition: height 0.7s ease; }
+.weekly-label { font-size: var(--font-caption); color: var(--text-muted); }
+.weekly-count { font-size: var(--font-caption); font-weight: 700; }
+
+/* ==========================================================================
+   Categories page
+   ========================================================================== */
+.category-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.category-row {
+  display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  transition: border-color var(--transition-fast);
+}
+.category-row:hover { border-color: var(--primary); }
+.category-swatch { width: 16px; height: 16px; border-radius: 999px; flex-shrink: 0; }
+.category-row strong { flex: 1; font-size: 0.92rem; }
+.category-row small { color: var(--text-muted); }
+.category-actions { display: flex; gap: var(--space-1); }
+.stacked-label {
+  display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-4);
+  font-size: var(--font-small); font-weight: 600; color: var(--text-secondary);
+}
+.stacked-label input, .stacked-label select {
+  border: 1px solid var(--border); background: var(--background); color: var(--text-primary);
+  border-radius: var(--radius-sm); padding: 0.6rem 0.75rem; font-size: var(--font-body); font-weight: 400;
+  min-height: 44px;
+}
+.panel input[type="color"] { height: 44px; padding: 0.2rem; cursor: pointer; }
+
+/* ==========================================================================
+   Settings groups
+   ========================================================================== */
+.settings-section { padding: var(--space-4) 0; border-bottom: 1px solid var(--border); }
+.settings-section:last-of-type { border-bottom: none; }
+.settings-section h3 { margin: 0 0 var(--space-3); font-size: 0.95rem; }
+.checkbox-row { display: flex; align-items: center; gap: var(--space-2); font-weight: 500; color: var(--text-primary); min-height: 44px; }
+.checkbox-row input { width: auto; min-height: auto; }
+
+/* ==========================================================================
+   Recurrence fieldset + attachment field on task form
+   ========================================================================== */
+.form-fieldset { border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: var(--space-3); margin-bottom: var(--space-4); }
+.form-fieldset legend { font-size: var(--font-small); font-weight: 700; color: var(--text-muted); padding: 0 0.3rem; display: flex; align-items: center; gap: var(--space-2); }
+
+/* ==========================================================================
+   Extra responsive rules for the panels above
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .calendar-layout { grid-template-columns: 1fr; }
+  .analytics-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+  .analytics-grid { grid-template-columns: 1fr; }
+  .calendar-grid { display: none; }
+  .calendar-grid.show-mobile { display: block; }
+  .calendar-day { min-height: 52px; }
+}
+
+/* ==========================================================================
+   Activity history
+   ========================================================================== */
+.activity-group-label {
+  font-size: var(--font-caption); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); margin: var(--space-4) 0 var(--space-2);
+}
+.activity-group-label:first-child { margin-top: 0; }
+.activity-list { display: flex; flex-direction: column; gap: 0; list-style: none; margin: 0; padding: 0; }
+.activity-item {
+  display: flex; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--border);
+  animation: fade-in-up var(--transition-slow) both;
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-icon {
+  width: 34px; height: 34px; border-radius: 999px; background: var(--surface-hover); color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.activity-icon.activity-completed { background: var(--success-soft); color: var(--success); }
+.activity-icon.activity-deleted { background: var(--danger-soft); color: var(--danger); }
+.activity-icon.activity-pinned, .activity-icon.activity-unpinned { background: var(--warning-soft); color: var(--warning); }
+.activity-body p { margin: 0; font-size: 0.9rem; }
+.activity-time { font-size: var(--font-caption); color: var(--text-muted); }
+
+/* ==========================================================================
+   Bulk selection & toolbar
+   ========================================================================== */
+.task-select {
+  width: 20px; height: 20px; border-radius: var(--radius-sm); border: 2px solid var(--border);
+  background: var(--surface); cursor: pointer; flex-shrink: 0; margin-top: 0.3rem; accent-color: var(--primary);
+}
+.bulk-toolbar {
+  position: sticky; top: calc(var(--topbar-height) + var(--space-2)); z-index: 20;
+  display: none; align-items: center; justify-content: space-between; gap: var(--space-3);
+  background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4); margin-bottom: var(--space-3); box-shadow: var(--shadow-md);
+  animation: fade-in-up var(--transition-normal) both;
+}
+.bulk-toolbar.visible { display: flex; flex-wrap: wrap; }
+.bulk-toolbar-count { font-weight: 600; font-size: 0.9rem; }
+.bulk-toolbar-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+/* ==========================================================================
+   Advanced filter panel
+   ========================================================================== */
+.filter-panel {
+  display: none; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: var(--space-4); margin-bottom: var(--space-4);
+  animation: fade-in-up var(--transition-normal) both;
+}
+.filter-panel.open { display: flex; }
+.filter-panel label {
+  display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--font-caption);
+  font-weight: 600; color: var(--text-muted); min-width: 130px;
+}
+.filter-panel select {
+  border: 1px solid var(--border); background: var(--background); color: var(--text-primary);
+  border-radius: var(--radius-sm); padding: 0.5rem 0.65rem; min-height: 40px;
+}
+.filter-badge {
+  background: var(--primary); color: var(--primary-contrast); border-radius: 999px;
+  font-size: 0.65rem; font-weight: 700; padding: 0.05rem 0.4rem; margin-left: var(--space-1);
+}
+
+/* ==========================================================================
+   Insights & streak
+   ========================================================================== */
+.insight-banner {
+  display: flex; align-items: center; gap: var(--space-3);
+  background: var(--primary-soft); color: var(--primary); border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); font-size: 0.9rem; font-weight: 500;
+  animation: fade-in-up var(--transition-slow) both; animation-delay: 200ms;
+}
+.insight-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.insight-row {
+  display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3);
+  background: var(--surface-hover); border-radius: var(--radius-sm); font-size: 0.88rem;
+}
+.streak-badge {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  background: var(--warning-soft); color: var(--warning); border-radius: 999px;
+  padding: 0.35rem 0.9rem; font-weight: 700; font-size: 0.85rem;
+}
+
+/* ==========================================================================
+   Notification bell
+   ========================================================================== */
+.notif-dot {
+  position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 999px;
+  background: var(--danger); border: 2px solid var(--surface);
+}
+.notif-dropdown {
+  position: absolute; right: 0; top: 48px; width: 300px;
+  background: var(--surface-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+  display: none; flex-direction: column; padding: var(--space-3); z-index: 40;
+  animation: scale-in var(--transition-fast) both;
+  max-height: 360px; overflow-y: auto;
+}
+.notif-dropdown.open { display: flex; }
+.notif-dropdown h4 { margin: 0 0 var(--space-2); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.notif-item { display: flex; gap: var(--space-2); padding: var(--space-2) 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+.notif-item:last-child { border-bottom: none; }
+.notif-empty { color: var(--text-muted); font-size: 0.85rem; padding: var(--space-2) 0; }
+
+/* ==========================================================================
+   Keyboard shortcuts help modal
+   ========================================================================== */
+.shortcuts-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(15, 17, 23, 0.5); z-index: 200;
+  align-items: center; justify-content: center; padding: var(--space-4);
+  animation: fade-in var(--transition-fast) both;
+}
+.shortcuts-overlay.open { display: flex; }
+.shortcuts-modal {
+  background: var(--surface-elevated); border-radius: var(--radius-lg); border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg); padding: var(--space-5); max-width: 380px; width: 100%;
+  animation: scale-in var(--transition-normal) both;
+}
+.shortcuts-modal h2 { margin: 0 0 var(--space-4); font-size: var(--font-h2); }
+.shortcuts-row { display: flex; justify-content: space-between; align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+.shortcuts-row:last-child { border-bottom: none; }
+kbd {
+  background: var(--surface-hover); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.15rem 0.5rem; font-family: inherit; font-size: 0.8rem; font-weight: 600;
+}
+
+/* ==========================================================================
+   Custom confirmation modal — replaces window.confirm() for destructive
+   actions (task delete, bulk delete, category delete).
+   ========================================================================== */
+.confirm-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(15, 17, 23, 0.5); z-index: 210;
+  align-items: center; justify-content: center; padding: var(--space-4);
+  animation: fade-in var(--transition-fast) both;
+}
+.confirm-overlay.open { display: flex; }
+.confirm-modal {
+  background: var(--surface-elevated); border-radius: var(--radius-lg); border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg); padding: var(--space-5); max-width: 400px; width: 100%;
+  animation: scale-in var(--transition-normal) both;
+}
+.confirm-modal h2 { margin: 0 0 var(--space-2); font-size: var(--font-h2); }
+.confirm-modal p { margin: 0 0 var(--space-5); color: var(--text-secondary); font-size: 0.92rem; }
+.confirm-danger-btn { background: var(--danger); }
+.confirm-danger-btn:hover { background: var(--danger); filter: brightness(1.1); box-shadow: var(--shadow-md); }
+
+/* ==========================================================================
+   AJAX transition states
+   ========================================================================== */
+.task-card.is-removing { animation: task-remove var(--transition-normal) ease forwards; }
+@keyframes task-remove { to { opacity: 0; transform: scale(0.97); max-height: 0; padding-top: 0; padding-bottom: 0; margin: 0; overflow: hidden; } }
+
+/* ==========================================================================
+   Completion celebration confetti — see main.js maybeCelebrateCompletion().
+   Only ever appended to the DOM when motion isn't reduced, so no separate
+   reduced-motion override is needed here.
+   ========================================================================== */
+.confetti-burst { position: fixed; inset: 0; pointer-events: none; z-index: 300; overflow: hidden; }
+.confetti-piece {
+  position: absolute; top: -10px; width: 8px; height: 8px; border-radius: 2px;
+  opacity: 0.9; animation: confetti-fall 1500ms ease-in forwards;
+}
+@keyframes confetti-fall {
+  to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+}
+
+/* ==========================================================================
+   Empty-state quick-start suggestions
+   ========================================================================== */
+.quick-start-row {
+  display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;
+  justify-content: center; margin-top: var(--space-3);
+}
+.quick-start-label { font-size: var(--font-caption); color: var(--text-muted); }
+
+/* ==========================================================================
+   Schedule status banner (dashboard) — compact two-line status with its own
+   CTA, replacing the older single-line insight strip.
+   ========================================================================== */
+.schedule-banner {
+  /* internal padding/gap untouched; margin-bottom trimmed 12px→8px, same
+     as the other section gaps. */
+  display: flex; align-items: center; gap: var(--space-3);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 10px var(--space-4); margin-bottom: 8px;
+  animation: fade-in-up var(--transition-slow) both; animation-delay: 200ms;
+}
+.schedule-banner-icon {
+  width: 36px; height: 36px; border-radius: var(--radius-md); flex-shrink: 0;
+  background: var(--primary-soft); color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+}
+.schedule-banner-text { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 1px; }
+.schedule-banner-text strong { color: var(--primary); font-size: 0.92rem; line-height: 1.3; }
+.schedule-banner-text span { color: var(--text-muted); font-size: var(--font-small); line-height: 1.3; }
+.schedule-banner-cta { flex-shrink: 0; }
+
+@media (max-width: 640px) {
+  .schedule-banner { flex-wrap: wrap; }
+  .schedule-banner-cta { width: 100%; justify-content: center; }
+}
+
+/* ==========================================================================
+   Stat cards as navigation links (each drills into its matching filter)
+   ========================================================================== */
+a.stat-card { text-decoration: none; color: inherit; }
+.stat-sub { display: block; font-size: var(--font-caption); color: var(--text-muted); margin-top: 0.1rem; }
+.stat-chevron {
+  margin-left: auto; color: var(--text-muted); display: flex; align-items: center;
+  align-self: flex-start; opacity: 0.45;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+.stat-card:hover .stat-chevron, .stat-card:focus-visible .stat-chevron { opacity: 1; transform: translateX(2px); }
+
+
+/* ==========================================================================
+   Collapsed-sidebar tooltips
+   Native `title` attributes render as slow, ugly OS rectangles. When the
+   sidebar is collapsed we suppress them (JS moves title -> data-tooltip)
+   and draw our own using the design system's surfaces instead.
+   ========================================================================== */
+.sidebar.collapsed .filter-btn::after {
+  content: attr(data-tooltip);
+  position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%) translateX(-4px);
+  background: var(--surface-elevated); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.3rem 0.6rem; font-size: 0.8rem; font-weight: 500; white-space: nowrap;
+  box-shadow: var(--shadow-md); pointer-events: none; z-index: 60;
+  opacity: 0; visibility: hidden;
+  transition: opacity var(--transition-fast), transform var(--transition-fast), visibility var(--transition-fast);
+}
+.sidebar.collapsed .filter-btn::before {
+  content: ''; position: absolute; left: calc(100% + 4px); top: 50%;
+  transform: translateY(-50%); border: 5px solid transparent;
+  border-right-color: var(--border); pointer-events: none; z-index: 60;
+  opacity: 0; visibility: hidden;
+  transition: opacity var(--transition-fast), visibility var(--transition-fast);
+}
+.sidebar.collapsed .filter-btn:hover::after,
+.sidebar.collapsed .filter-btn:focus-visible::after {
+  opacity: 1; visibility: visible; transform: translateY(-50%) translateX(0);
+}
+.sidebar.collapsed .filter-btn:hover::before,
+.sidebar.collapsed .filter-btn:focus-visible::before { opacity: 1; visibility: visible; }
+
+/* A scrollable nav (overflow-y:auto) also clips horizontally, which would
+   cut off the collapsed tooltips above. Collapsed, the nav is icons-only
+   and short enough not to need scrolling, so let it overflow visibly.
+   (.sidebar-top's own overflow:visible is set alongside its other
+   collapsed-state padding, further up this file.) */
+.sidebar.collapsed .filter-list { overflow: visible; }
+
+/* ==========================================================================
+   Empty-state checklist illustration (tasks/partials/empty_illustration.html)
+   ========================================================================== */
+.empty-illustration { margin-bottom: var(--space-3); line-height: 0; }
+.empty-illustration .ei-card {
+  fill: var(--surface-hover); stroke: var(--border); stroke-width: 1.5;
+}
+.empty-illustration .ei-box { fill: none; stroke: var(--text-muted); stroke-width: 1.5; }
+.empty-illustration .ei-line {
+  stroke: var(--text-muted); stroke-width: 2; stroke-linecap: round; opacity: 0.55;
+}
+.empty-illustration .ei-badge { fill: var(--primary); }
+.empty-illustration .ei-plus {
+  stroke: var(--primary-contrast); stroke-width: 2.2; stroke-linecap: round;
+}
+.empty-illustration .ei-spark { fill: var(--primary); opacity: 0.55; }

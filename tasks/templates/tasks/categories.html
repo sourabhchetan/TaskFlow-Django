@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Categories · To-Do List{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">Organize</p>
+    <h1>Categories</h1>
+    <p class="hero-subtitle">Manage the categories you use to group your tasks.</p>
+  </div>
+</section>
+
+<div class="dashboard-grid">
+  <div class="panel">
+    <h3>{% icon "tag" %} Your categories</h3>
+    <div class="category-list">
+      {% for entry in categories %}
+      <div class="category-row">
+        <span class="category-swatch" style="background: {{ entry.obj.color }};"></span>
+        <strong>{{ entry.obj.name }}</strong>
+        <small>{{ entry.task_count }} task{{ entry.task_count|pluralize }}</small>
+        <div class="category-actions">
+          <a class="icon-btn small" href="{% url 'category_edit' entry.obj.pk %}" aria-label="Edit category" title="Edit">{% icon "edit" %}</a>
+          <form action="{% url 'category_delete' entry.obj.pk %}" method="post" data-confirm="Delete this category? Tasks using it will become uncategorized.">
+            {% csrf_token %}
+            <button type="submit" class="icon-btn small danger" aria-label="Delete category" title="Delete">{% icon "trash" %}</button>
+          </form>
+        </div>
+      </div>
+      {% empty %}
+      <p class="muted">You don't have any categories yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>{% icon "plus" %} New category</h3>
+    <form method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="form-alert">{{ form.non_field_errors }}</div>{% endif %}
+      <label class="stacked-label">
+        Name
+        {{ form.name }}
+        {% if form.name.errors %}<small class="field-error">{{ form.name.errors|join:", " }}</small>{% endif %}
+      </label>
+      <label class="stacked-label">
+        Color
+        {{ form.color }}
+      </label>
+      <button class="primary-btn full-width" type="submit">Create category</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

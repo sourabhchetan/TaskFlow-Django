@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Analytics · To-Do List{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">Insights</p>
+    <h1>Analytics</h1>
+    <p class="hero-subtitle">A quick look at how you're getting things done.</p>
+  </div>
+  {% if streak.current > 0 %}
+  <span class="streak-badge">{% icon "flag-high" "inline" %} {{ streak.current }}-day streak{% if streak.longest > streak.current %} · best {{ streak.longest }}{% endif %}</span>
+  {% elif streak.longest > 0 %}
+  <span class="streak-badge">{% icon "flag-high" "inline" %} Best streak: {{ streak.longest }} day{{ streak.longest|pluralize }}</span>
+  {% endif %}
+</section>
+
+{% if insights %}
+<div class="insight-list" style="margin-bottom: var(--space-5);">
+  {% for insight in insights %}
+  <div class="insight-row">{% icon "chart" "inline" %} {{ insight }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<section class="stats-grid" aria-label="Analytics summary">
+  <article class="stat-card">
+    <span class="stat-icon blue">{% icon "list" %}</span>
+    <div><small>Total Tasks</small><strong>{{ stats.total }}</strong></div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon green">{% icon "check" %}</span>
+    <div><small>Completion Rate</small><strong>{{ completion_rate }}%</strong></div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon indigo">{% icon "calendar" %}</span>
+    <div><small>Completed This Week</small><strong>{{ completed_this_week }}</strong></div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon red">{% icon "warning" %}</span>
+    <div><small>Overdue</small><strong>{{ stats.overdue }}</strong></div>
+  </article>
+</section>
+
+<section class="analytics-grid">
+  <div class="chart-panel">
+    <h3>{% icon "flag-high" "inline" %} Tasks by Priority</h3>
+    <div class="bar-chart">
+      {% for bar in priority_bars %}
+      <div class="bar-row">
+        <span>{{ bar.label }}</span>
+        <div class="bar-track"><div class="bar-fill priority-fill-{{ bar.label|lower }}" style="width: {{ bar.pct }}%"></div></div>
+        <span>{{ bar.count }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="chart-panel">
+    <h3>{% icon "tag" "inline" %} Tasks by Category</h3>
+    <div class="bar-chart">
+      {% for bar in category_bars %}
+      <div class="bar-row">
+        <span>{{ bar.label }}</span>
+        <div class="bar-track"><div class="bar-fill" style="width: {{ bar.pct }}%"></div></div>
+        <span>{{ bar.count }}</span>
+      </div>
+      {% empty %}
+      <p class="muted">No tasks yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="chart-panel">
+    <h3>{% icon "chart" "inline" %} Weekly Productivity</h3>
+    <div class="weekly-chart">
+      {% for day in weekly_bars %}
+      <div class="weekly-col">
+        <span class="weekly-count">{{ day.count }}</span>
+        <div class="weekly-bar" style="height: {{ day.pct }}%;"></div>
+        <span class="weekly-label">{{ day.label }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

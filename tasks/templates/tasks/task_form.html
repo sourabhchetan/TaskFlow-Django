@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}{% if is_edit %}Edit Task{% else %}New Task{% endif %} · To-Do List{% endblock %}
+
+{% block content %}
+<section class="form-page">
+  <div class="form-card">
+    <p class="eyebrow">Task details</p>
+    <h1>{% if is_edit %}Edit task{% else %}Create a task{% endif %}</h1>
+
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="form-alert">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <label>Task title <span class="required">*</span>
+        {{ form.title }}
+        {% if form.title.errors %}<small class="field-error">{{ form.title.errors|join:", " }}</small>{% endif %}
+      </label>
+
+      <label>Description
+        {{ form.description }}
+        {% if form.description.errors %}<small class="field-error">{{ form.description.errors|join:", " }}</small>{% endif %}
+      </label>
+
+      <div class="form-row">
+        <label>Category
+          {{ form.category }}
+          {% if not form.category.field.queryset.exists %}
+          <small class="muted">No categories yet — <a href="{% url 'categories' %}">create one</a>.</small>
+          {% endif %}
+        </label>
+        <label>Priority
+          {{ form.priority }}
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label>Due date
+          {{ form.due_date }}
+          {% if form.due_date.errors %}<small class="field-error">{{ form.due_date.errors|join:", " }}</small>{% endif %}
+        </label>
+        <label>Due time
+          {{ form.due_time }}
+        </label>
+      </div>
+
+      <label>Remind me
+        {{ form.reminder_offset }}
+      </label>
+
+      <fieldset class="form-fieldset">
+        <legend>{% icon "repeat" %} Recurrence</legend>
+        <label>Does this task repeat?
+          {{ form.does_repeat }}
+        </label>
+        <div class="form-row">
+          <label>{{ form.recurrence_interval.label }}
+            {{ form.recurrence_interval }}
+          </label>
+          <label>{{ form.recurrence_end_date.label }}
+            {{ form.recurrence_end_date }}
+          </label>
+        </div>
+      </fieldset>
+
+      <label>{% icon "paperclip" "inline" %} Attachment
+        {{ form.attachment }}
+        <small class="muted">PDF, image, Word, text, CSV, or Excel — up to 5MB.</small>
+        {% if form.attachment.errors %}<small class="field-error">{{ form.attachment.errors|join:", " }}</small>{% endif %}
+        {% if task.attachment %}<small class="muted">Current file: <a href="{{ task.attachment.url }}">{{ task.attachment.name }}</a></small>{% endif %}
+      </label>
+
+      <div class="modal-actions">
+        <a class="secondary-btn" href="{% url 'dashboard' %}">Cancel</a>
+        <button class="primary-btn" type="submit">{% if is_edit %}Save changes{% else %}Create task{% endif %}</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

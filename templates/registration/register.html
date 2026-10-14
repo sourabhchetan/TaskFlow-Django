@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Create account · To-Do List{% endblock %}
+{% block auth_content %}
+<div class="auth-card">
+  <div class="brand centered">
+    <div class="brand-mark">{% icon "check" %}</div>
+    <strong>To-Do List</strong>
+  </div>
+  <h1>Create your account</h1>
+  <p class="muted">Start organizing your day in minutes.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-alert">{{ form.non_field_errors }}</div>{% endif %}
+    <label>Username
+      {{ form.username }}
+      {% if form.username.errors %}<small class="field-error">{{ form.username.errors|join:", " }}</small>{% endif %}
+    </label>
+    <label>Email
+      {{ form.email }}
+      {% if form.email.errors %}<small class="field-error">{{ form.email.errors|join:", " }}</small>{% endif %}
+    </label>
+    <label>Password
+      <span class="password-field">
+        {{ form.password1 }}
+        <button type="button" class="password-toggle-btn" aria-label="Show password" data-toggle-for="{{ form.password1.id_for_label }}">
+          <span class="icon-eye">{% icon "eye" %}</span><span class="icon-eye-off">{% icon "eye-off" %}</span>
+        </button>
+      </span>
+      {% if form.password1.errors %}<small class="field-error">{{ form.password1.errors|join:", " }}</small>{% endif %}
+    </label>
+    <label>Confirm password
+      <span class="password-field">
+        {{ form.password2 }}
+        <button type="button" class="password-toggle-btn" aria-label="Show password" data-toggle-for="{{ form.password2.id_for_label }}">
+          <span class="icon-eye">{% icon "eye" %}</span><span class="icon-eye-off">{% icon "eye-off" %}</span>
+        </button>
+      </span>
+      {% if form.password2.errors %}<small class="field-error">{{ form.password2.errors|join:", " }}</small>{% endif %}
+    </label>
+    <button class="primary-btn full-width" type="submit">Create account</button>
+  </form>
+  <p class="auth-footer">Already have an account? <a href="{% url 'login' %}">Sign in</a></p>
+</div>
+{% endblock %}

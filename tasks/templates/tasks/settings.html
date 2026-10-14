@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Settings · To-Do List{% endblock %}
+{% block content %}
+<section class="form-page">
+  <div class="form-card">
+    <p class="eyebrow">Preferences</p>
+    <h1>Settings</h1>
+
+    <form method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="form-alert">{{ form.non_field_errors }}</div>{% endif %}
+
+      <div class="settings-section">
+        <h3>{% icon "sun" "inline" %} Appearance</h3>
+        <label>Theme
+          {{ form.theme_preference }}
+        </label>
+        <p class="muted">"System" follows your device's setting. Toggling the sun/moon icon in the header overrides this on this device only.</p>
+      </div>
+
+      <div class="settings-section">
+        <h3>{% icon "list" "inline" %} Task preferences</h3>
+        <div class="form-row">
+          <label>Default priority for new tasks
+            {{ form.default_priority }}
+          </label>
+          <label>Default dashboard view
+            {{ form.default_view }}
+          </label>
+        </div>
+        <label>Default sort order
+          {{ form.default_sort }}
+        </label>
+      </div>
+
+      <div class="settings-section">
+        <h3>{% icon "clock" "inline" %} Notifications</h3>
+        <label class="checkbox-row">
+          {{ form.reminders_enabled }} Enable task reminders
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <a class="secondary-btn" href="{% url 'dashboard' %}">Back to dashboard</a>
+        <button class="primary-btn" type="submit">Save settings</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

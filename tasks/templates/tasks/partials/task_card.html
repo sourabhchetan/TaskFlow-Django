@@ -1,0 +1,53 @@
+{% load icons %}
+<article class="task-card {% if task.completed %}is-completed{% endif %} {% if task.is_overdue %}is-overdue{% endif %}" data-task-id="{{ task.pk }}">
+  <input type="checkbox" class="task-select" name="task_ids" value="{{ task.pk }}" form="bulkActionForm" aria-label="Select &ldquo;{{ task.title }}&rdquo; for bulk actions">
+  <form action="{% url 'task_toggle' task.pk %}" method="post" class="task-check-form ajax-task-form" data-ajax-action="toggle">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <button type="submit" class="task-checkbox" aria-label="{% if task.completed %}Mark active again{% else %}Mark complete{% endif %}" data-check-icon='{% icon "check" %}'>
+      {% if task.completed %}{% icon "check" %}{% endif %}
+    </button>
+  </form>
+
+  <div class="task-body">
+    <div class="task-title-row">
+      <h3 class="task-title">{{ task.title }}</h3>
+      {% if task.pinned %}<span class="pin-indicator" title="Pinned">{% icon "pin" %}</span>{% endif %}
+      {% if task.is_recurring %}<span class="pin-indicator" title="Repeats {{ task.get_recurrence_type_display }}">{% icon "repeat" %}</span>{% endif %}
+      {% if task.attachment %}<span class="pin-indicator" title="Has attachment">{% icon "paperclip" %}</span>{% endif %}
+    </div>
+    {% if task.description %}
+    <p class="task-desc">{{ task.description }}</p>
+    {% endif %}
+    <div class="task-meta">
+      <span class="badge priority-{{ task.priority }}">{{ task.priority_label }}</span>
+      <span class="badge category-badge" style="background: {{ task.category_color }}22; color: {{ task.category_color }};">
+        <span class="category-swatch" style="width:8px;height:8px;background:{{ task.category_color }};"></span> {{ task.category_label }}
+      </span>
+      {% if task.completed %}
+        <span class="due-info">{% icon "check" "inline" %} Task completed</span>
+      {% elif task.due_date %}
+        <span class="due-info">
+          {% if task.is_due_today %}Today{% else %}{{ task.due_date|date:"M j" }}{% endif %}
+          {% if task.due_time %} · {{ task.due_time|time:"g:i A" }}{% endif %}
+        </span>
+        <span class="countdown {% if task.is_overdue %}overdue-tag{% elif task.is_due_soon %}soon-tag{% endif %}">
+          {% if task.is_overdue %}{% icon "warning" "inline" %}{% endif %}{{ task.countdown_text }}
+        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="task-actions">
+    <form action="{% url 'task_pin' task.pk %}" method="post" class="ajax-task-form" data-ajax-action="pin">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button type="submit" class="icon-btn small {% if task.pinned %}active{% endif %}" aria-label="{% if task.pinned %}Unpin task{% else %}Pin task{% endif %}" title="Pin">{% icon "pin" %}</button>
+    </form>
+    <a class="icon-btn small" href="{% url 'task_edit' task.pk %}" aria-label="Edit task" title="Edit">{% icon "edit" %}</a>
+    <form action="{% url 'task_delete' task.pk %}" method="post" class="task-delete-form ajax-task-form" data-ajax-action="delete" data-confirm="Delete this task? This cannot be undone.">
+      {% csrf_token %}
+      <button type="submit" class="icon-btn small danger" aria-label="Delete task" title="Delete">{% icon "trash" %}</button>
+    </form>
+  </div>
+</article>

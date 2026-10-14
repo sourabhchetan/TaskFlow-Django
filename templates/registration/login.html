@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Sign in · To-Do List{% endblock %}
+{% block auth_content %}
+<div class="auth-card">
+  <div class="brand centered">
+    <div class="brand-mark">{% icon "check" %}</div>
+    <strong>To-Do List</strong>
+  </div>
+  <h1>Welcome back</h1>
+  <p class="muted">Sign in to see your tasks.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-alert">{{ form.non_field_errors }}</div>{% endif %}
+    <label>Username
+      {{ form.username }}
+    </label>
+    <label>Password
+      <span class="password-field">
+        {{ form.password }}
+        <button type="button" class="password-toggle-btn" aria-label="Show password" data-toggle-for="{{ form.password.id_for_label }}">
+          <span class="icon-eye">{% icon "eye" %}</span><span class="icon-eye-off">{% icon "eye-off" %}</span>
+        </button>
+      </span>
+    </label>
+    <button class="primary-btn full-width" type="submit">Sign in</button>
+  </form>
+  <p class="auth-footer">
+    <a href="{% url 'password_reset' %}">Forgot your password?</a>
+  </p>
+  <p class="auth-footer">Don't have an account? <a href="{% url 'register' %}">Create one</a></p>
+</div>
+{% endblock %}

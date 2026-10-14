@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Calendar · To-Do List{% endblock %}
+
+{% block content %}
+<div class="calendar-header">
+  <div>
+    <p class="eyebrow">Schedule</p>
+    <h1>{{ month_name }} {{ year }}</h1>
+  </div>
+  <div class="calendar-nav">
+    <a class="icon-btn" href="?year={{ prev_year }}&month={{ prev_month }}" aria-label="Previous month">{% icon "chevron-left" %}</a>
+    <a class="secondary-btn" href="?year={{ today.year }}&month={{ today.month }}&date={{ today|date:'Y-m-d' }}">Today</a>
+    <a class="icon-btn" href="?year={{ next_year }}&month={{ next_month }}" aria-label="Next month">{% icon "chevron-right" %}</a>
+    <button class="secondary-btn" id="calendarToggle" type="button">Show calendar grid</button>
+  </div>
+</div>
+
+<div class="calendar-layout">
+  <div class="calendar-grid" id="calendarGrid">
+    <div class="calendar-weekdays">
+      {% for label in weekday_labels %}<span>{{ label }}</span>{% endfor %}
+    </div>
+    {% for week in weeks %}
+    <div class="calendar-week">
+      {% for day in week %}
+      <a class="calendar-day {% if not day.in_month %}out-of-month{% endif %} {% if day.is_today %}is-today{% endif %} {% if day.date == selected_date %}is-selected{% endif %}"
+         href="?year={{ year }}&month={{ month }}&date={{ day.date|date:'Y-m-d' }}">
+        <span class="day-number">{{ day.date.day }}</span>
+        {% if day.task_count %}<span class="day-task-count">{{ day.task_count }} task{{ day.task_count|pluralize }}</span>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="agenda-panel">
+    <h3>{% icon "list" "inline" %} {% if selected_date == today %}Today{% else %}{{ selected_date|date:"l, M j" }}{% endif %}</h3>
+    {% if agenda %}
+      {% for task in agenda %}
+      <div class="agenda-item">
+        <span class="agenda-time">{% if task.due_time %}{{ task.due_time|time:"g:i A" }}{% else %}All day{% endif %}</span>
+        <div>
+          <div class="agenda-title {% if task.completed %}is-completed{% endif %}">{{ task.title }}</div>
+          <span class="badge priority-{{ task.priority }}">{{ task.priority_label }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="agenda-empty">No tasks scheduled for this day.</p>
+    {% endif %}
+    <div class="modal-actions">
+      <a class="secondary-btn full-width" href="{% url 'task_create' %}">{% icon "plus" "inline" %} Add task for this day</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  var toggle = document.getElementById('calendarToggle');
+  var grid = document.getElementById('calendarGrid');
+  if (toggle && grid) {
+    toggle.addEventListener('click', function () {
+      grid.classList.toggle('show-mobile');
+      toggle.textContent = grid.classList.contains('show-mobile') ? 'Hide calendar grid' : 'Show calendar grid';
+    });
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,58 @@
+# Render Blueprint — lets Render create the web service and the database
+# together from this one file ("New +" -> "Blueprint" in the Render
+# dashboard, pointed at this repo) instead of configuring each by hand.
+#
+# This is one deployment path, not the only one: you can ignore this file
+# entirely and create the web service + database manually in the Render
+# dashboard instead (see README > Deploying to Render). Just don't do both
+# at once — a service created from this Blueprint is managed by it, and
+# hand-editing the same service's settings in the dashboard afterwards can
+# fight with what's declared here. Pick one path.
+#
+# Free-tier web services and databases are NOT guaranteed to stay available
+# indefinitely or forever free — Render's current plans decide that, not
+# this file. Change `plan: free` below to whatever plan actually applies to
+# your account at deploy time.
+databases:
+  - name: todo-list-db
+    plan: free
+    # postgresqlMajorVersion left unset: Render picks its current default.
+    # Pin it here (e.g. `postgresqlMajorVersion: 16`) if you need a specific
+    # major version.
+
+services:
+  - type: web
+    name: todo-list-django
+    runtime: python
+    plan: free
+    buildCommand: "./build.sh"
+    # Must match Procfile's start command — both exist because Render
+    # Blueprints read startCommand from here, while a service created
+    # through the dashboard without a Blueprint falls back to Procfile.
+    startCommand: "gunicorn config.wsgi:application"
+    envVars:
+      # Render generates a random, unique value for this at first deploy —
+      # never a secret you type in yourself, and never logged anywhere.
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      # RENDER_EXTERNAL_HOSTNAME (set automatically by Render) is also
+      # appended in config/settings.py, so this mainly matters if you later
+      # add a custom domain — add it to this comma-separated list then.
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://*.onrender.com"
+      - key: DJANGO_TIME_ZONE
+        value: "UTC"
+      - key: DJANGO_SECURE_COOKIES
+        value: "True"
+      - key: PYTHON_VERSION
+        value: "3.12.3"
+      # Render fills this in from the database block above automatically —
+      # you never type a connection string in yourself.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: todo-list-db
+          property: connectionString

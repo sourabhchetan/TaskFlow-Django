@@ -1,0 +1,42 @@
+{% load static icons %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4f46e5">
+<title>404 · To-Do List</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'tasks/css/style.css' %}">
+<script>
+  // Same before-first-paint theme detection as the rest of the app. This
+  // page deliberately does NOT extend base.html or use context processors
+  // (sidebar_counts / notification_bell) that query the database — an
+  // error page, especially 500, should never risk a second crash while
+  // trying to render itself.
+  (function () {
+    var saved = localStorage.getItem('todo-theme');
+    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+</head>
+<body>
+  <div class="auth-shell">
+    <div class="auth-card" style="text-align: center;">
+      <div class="brand centered">
+        <div class="brand-mark">{% icon "check" %}</div>
+        <strong>To-Do List</strong>
+      </div>
+      <div class="empty-icon" style="margin: 0 auto var(--space-4);">{% icon "search" %}</div>
+      <p class="eyebrow" style="margin-bottom: 0;">Error 404</p>
+      <h1>Page not found</h1>
+      <p class="muted" style="margin-bottom: var(--space-5);">The page you're looking for doesn't exist or may have been moved.</p>
+      <a class="primary-btn full-width" href="/">{% icon "home" "inline" %} Back to Dashboard</a>
+    </div>
+  </div>
+</body>
+</html>

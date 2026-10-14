@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Edit Category · To-Do List{% endblock %}
+{% block content %}
+<section class="form-page">
+  <div class="form-card">
+    <p class="eyebrow">Category</p>
+    <h1>Edit category</h1>
+    <form method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="form-alert">{{ form.non_field_errors }}</div>{% endif %}
+      <label>Name
+        {{ form.name }}
+        {% if form.name.errors %}<small class="field-error">{{ form.name.errors|join:", " }}</small>{% endif %}
+      </label>
+      <label>Color
+        {{ form.color }}
+      </label>
+      <div class="modal-actions">
+        <a class="secondary-btn" href="{% url 'categories' %}">Cancel</a>
+        <button class="primary-btn" type="submit">Save changes</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

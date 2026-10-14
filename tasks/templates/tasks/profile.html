@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Profile · To-Do List{% endblock %}
+{% block content %}
+<section class="form-page">
+  <div class="form-card">
+    <p class="eyebrow">Account</p>
+    <h1>Profile</h1>
+    <div class="profile-grid">
+      <div class="profile-item"><small>Username</small><strong>{{ user.username }}</strong></div>
+      <div class="profile-item"><small>Date joined</small><strong>{{ user.date_joined|date:"M j, Y" }}</strong></div>
+      <div class="profile-item"><small>Total tasks</small><strong>{{ total_tasks }}</strong></div>
+      <div class="profile-item"><small>Active tasks</small><strong>{{ active_tasks }}</strong></div>
+      <div class="profile-item"><small>Completed tasks</small><strong>{{ completed_tasks }}</strong></div>
+      <div class="profile-item"><small>Completion rate</small><strong>{{ completion_rate }}%</strong></div>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      {% if email_form.non_field_errors %}<div class="form-alert">{{ email_form.non_field_errors }}</div>{% endif %}
+      <label>Email
+        {{ email_form.email }}
+        {% if email_form.email.errors %}<small class="field-error">{{ email_form.email.errors|join:", " }}</small>{% endif %}
+      </label>
+      <div class="modal-actions">
+        <a class="secondary-btn" href="{% url 'dashboard' %}">Back to dashboard</a>
+        <button class="primary-btn" type="submit">Save email</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load icons task_extras %}
+{% block title %}Activity · To-Do List{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">History</p>
+    <h1>Activity</h1>
+    <p class="hero-subtitle">A record of what you've done recently.</p>
+  </div>
+</section>
+
+<section class="panel">
+  {% if entries %}
+  {% for label, group in grouped_entries %}
+  <h3 class="activity-group-label">{{ label }}</h3>
+  <ul class="activity-list">
+    {% for entry in group %}
+    <li class="activity-item">
+      <span class="activity-icon activity-{{ entry.action }}">
+        {% if entry.action == 'completed' %}{% icon "check" %}
+        {% elif entry.action == 'deleted' %}{% icon "trash" %}
+        {% elif entry.action == 'pinned' %}{% icon "pin" %}
+        {% elif entry.action == 'unpinned' %}{% icon "pin" %}
+        {% elif entry.action == 'reopened' %}{% icon "repeat" %}
+        {% elif entry.action == 'priority_changed' %}{% icon "flag-high" %}
+        {% elif entry.action == 'due_date_changed' %}{% icon "calendar" %}
+        {% else %}{% icon "plus" %}{% endif %}
+      </span>
+      <div class="activity-body">
+        <p>{{ entry.description }}</p>
+        <span class="activity-time">{% if label == "Earlier" %}{{ entry.created_at|date:"M j, g:i A" }}{% else %}{{ entry.created_at|date:"g:i A" }}{% endif %}</span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endfor %}
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <nav class="pagination" aria-label="Activity pages">
+    {% if page_obj.has_previous %}
+      <a href="?{% query_transform request page=page_obj.previous_page_number %}">{% icon "chevron-left" %} Prev</a>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?{% query_transform request page=page_obj.next_page_number %}">Next {% icon "chevron-right" %}</a>
+    {% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">{% icon "clock" %}</div>
+    <h3>No activity yet</h3>
+    <p>Actions like completing or pinning a task will show up here.</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
